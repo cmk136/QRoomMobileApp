@@ -1,38 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Button, ActivityIndicator, Alert, StyleSheet } from "react-native";
-import { getUserDetails } from "../api/authService"; // ✅ Updated path
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const HomeScreen = ({ navigation, route }) => {
-  const [userName, setUserName] = useState(route.params?.userName || "Guest");
-  const [loading, setLoading] = useState(true);
 
-  const token = route.params?.token || "";
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem("accessToken");
+      await AsyncStorage.removeItem("refreshToken");
 
-  useEffect(() => {
-    if (!token) return;
-
-    const fetchUser = async () => {
-      try {
-        const userData = await getUserDetails(token);
-        setUserName(userData.name);
-      } catch (error) {
-        Alert.alert("Error", error.message || "Failed to fetch user data");
-      }
-      setLoading(false);
-    };
-
-    fetchUser();
-  }, []);
+      navigation.replace("Login"); // Navigate back to Login screen
+    } catch (error) {
+      Alert.alert("Error", "Failed to logout. Please try again.");
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {loading ? (
-        <ActivityIndicator size="large" color="#007bff" />
-      ) : (
-        <Text style={styles.title}>Hello, {userName}!</Text>
-      )}
-
-      <Button title="Logout" onPress={() => navigation.replace("Login")} />
+      <Text style={styles.title}>Hello!</Text>
+      <Button title="Logout" onPress={handleLogout} />
     </View>
   );
 };
