@@ -25,7 +25,7 @@ export const loginUser = async (email, password) => {
 // Send OTP to users via email
 export const sendVerifyOtp = async (email) => {
   try {
-      const response = await axios.post('', { email });
+      const response = await axios.post('https://8vsanyv1b3.execute-api.ap-southeast-1.amazonaws.com/prod/sendVerifyOtp', { email });
       return response.data;
   } catch (error) {
       throw error.response ? error.response.data : { message: "Network error" };
@@ -35,18 +35,9 @@ export const sendVerifyOtp = async (email) => {
 // Verify if OTP is still valid and matches
 export const verifyOtp = async (email, otp) => {
   try {
-      const response = await axios.post('', { email, otp });
+      const response = await axios.post('https://2dj1t5cuhd.execute-api.ap-southeast-1.amazonaws.com/prod/verifyOtp', { email, otp });
       return response.data;
   } catch (error) {
       throw error.response ? error.response.data : { message: "Network error" };
-  }
-}
-
-// StoreDeviceId on register
-export const storeDeviceId = async (email, deviceId) => {
-  try {
-    const response = await axios.post('', { email, deviceId });
-  } catch (error) {
-    throw error.response ? error.response.data : { message: "Network error" };
   }
 }

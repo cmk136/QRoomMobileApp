@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from "react-native";
-import { sendVerifyOtp, verifyOtp, storeDeviceId  } from "../api/authService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as LocalAuthentication from "expo-local-authentication";
+import { sendVerifyOtp, verifyOtp  } from "../api/authService";
 
 const OtpScreen = ({ navigation, route }) => {
   const { email } = route.params;
@@ -16,10 +14,11 @@ const OtpScreen = ({ navigation, route }) => {
 
     try{
       const response = await sendVerifyOtp(email);
+      console.log("OTP is: ", response.otp)
       Alert.alert("OTP Sent", response.message);
 
     } catch(error){
-      Alert.alert("OTP Sent", error.message);
+      Alert.alert("Error sending OTP", error.message);
     }
     setResending(false);
   };
@@ -41,8 +40,8 @@ const OtpScreen = ({ navigation, route }) => {
     try {
       const response = await verifyOtp(email, otp);
 
-      if (response.success) {
-        authenticateBiometrics();
+      if (response.message) {
+        Alert.alert("Success", "OTP Verified Successfully!");
       } else {
         Alert.alert("OTP Verification Failed", response.message || "Invalid OTP.");
       }
@@ -51,33 +50,6 @@ const OtpScreen = ({ navigation, route }) => {
     }
     setLoading(false);
   };
-
-  const authenticateBiometrics = async () => {
-    const biometricAuth = await LocalAuthentication.authenticateAsync({
-      promptMessage: "Authenticate with Face ID / Fingerprint",
-      cancelLabel: "Cancel",
-    });
-
-    if (biometricAuth.success) {
-
-      try {
-        const response = await storeDeviceId(email, deviceId);
-
-        if (response.accessToken && response.refreshToken) {
-          await AsyncStorage.setItem("accessToken", response.accessToken);
-          await AsyncStorage.setItem("refreshToken", response.refreshToken);
-          navigation.replace("Home");
-        } else {
-          Alert.alert("Error", response.message);
-        }
-      } catch (error) {
-        Alert.alert("Error", "Failed to store device ID.");
-      }
-    } else {
-      Alert.alert("Biometric Authentication Failed", "Please try again.");
-    }
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Enter OTP</Text>
