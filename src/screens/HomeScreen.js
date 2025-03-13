@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Button, ActivityIndicator, Alert, StyleSheet } from "react-native";
-import { getUserDetails } from "../api/authService"; // ✅ Updated path
+import { getUserDetails } from "../api/authService"; 
 
 const HomeScreen = ({ navigation, route }) => {
   const [userName, setUserName] = useState(route.params?.userName || "Guest");

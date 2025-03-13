@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from "react-native";
-import { loginUser } from "../api/authService"; // ✅ Updated path
+import { loginUser } from "../api/authService"; 
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");

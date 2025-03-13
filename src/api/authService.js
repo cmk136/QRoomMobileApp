@@ -1,5 +1,5 @@
 import axios from "axios";
-import API_BASE_URL from "./apiConfig"; // ✅ Corrected path
+import API_BASE_URL from "./apiConfig"; 
 
 // Login API Call
 export const loginUser = async (email, password) => {
