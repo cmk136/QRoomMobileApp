@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from "react-native";
-import { loginUser } from "../api/authService"; 
+import { loginUser } from "../api/authService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -18,8 +19,20 @@ const LoginScreen = ({ navigation }) => {
     try {
       const response = await loginUser(email, password);
 
+      if (response.requiresVerification) {
+        // Redirect to OTP verification screen without showing an alert
+        console.log("Redirecting to OTP Verification...");
+        navigation.replace("OtpVerification", { email });
+        return;
+      }
+
       if (response.success) {
-        navigation.replace("Home", { token: response.token, userName: response.name });
+        // Store tokens in AsyncStorage
+        await AsyncStorage.setItem("accessToken", response.accessToken);
+        await AsyncStorage.setItem("refreshToken", response.refreshToken);
+
+        // Navigate to Home Screen
+        navigation.replace("Home");
       } else {
         Alert.alert("Login Failed", response.message || "Invalid credentials");
       }
