@@ -18,7 +18,7 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       const response = await loginUser(email, password);
-
+      console.log("🔹 Full Login Response:", response);
       if (response.requiresVerification) {
         // Redirect to OTP verification screen without showing an alert
         console.log("Redirecting to OTP Verification...");
@@ -26,10 +26,16 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      if (response.success) {
+      if (response.accessToken) {
+        console.log("✅ Received Access Token:", response.accessToken);
         // Store tokens in AsyncStorage
         await AsyncStorage.setItem("accessToken", response.accessToken);
+        console.log(response.accessToken); //retrieve user's access token
         await AsyncStorage.setItem("refreshToken", response.refreshToken);
+
+        // ✅ Verify that the token was stored successfully
+        const storedToken = await AsyncStorage.getItem("accessToken");
+        console.log("🔹 Token Retrieved from AsyncStorage:", storedToken);
 
         // Navigate to Home Screen
         navigation.replace("Home");

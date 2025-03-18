@@ -1,4 +1,6 @@
 import axios from "axios";
+import * as Device from "expo-device";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Login API Call
 export const loginUser = async (email, password) => {
@@ -41,3 +43,48 @@ export const verifyOtp = async (email, otp) => {
       throw error.response ? error.response.data : { message: "Network error" };
   }
 }
+
+// Fetch User Bookings API Call
+export const fetchUserBookings = async () => {
+  try {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    console.log('from bookings',accessToken);
+    if (!accessToken) {
+      throw new Error("No access token found. Please log in again.");
+    }
+
+    const response = await axios.get(
+      "https://velilo080f.execute-api.ap-southeast-1.amazonaws.com/prod/fetchUsersBooking",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    return response.data.bookings;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: "Network error" };
+  }
+};
+
+// Register Device API Call
+export const registerDevice = async (userId, deviceId) => {
+  try {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+
+    if (!accessToken) {
+      throw new Error("No access token found. Please log in again.");
+    }
+
+    const response = await axios.post(
+      "https://43eextcx60.execute-api.ap-southeast-1.amazonaws.com/prod/registerDevice", 
+      { userId, deviceId },
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: "Network error" };
+  }
+};

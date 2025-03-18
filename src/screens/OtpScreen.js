@@ -9,6 +9,7 @@ const OtpScreen = ({ navigation, route }) => {
   const [initialOtp, setInitialOtp] = useState(false);
   const [resending, setResending] = useState(false);
 
+  // sendOtp
   const sendOtp = async() => {
     setResending(true);
 
@@ -30,26 +31,41 @@ const OtpScreen = ({ navigation, route }) => {
     }
   }, [initialOtp]);
 
+  // handleVerifyOtp
   const handleVerifyOtp = async () => {
     if (!otp) {
       Alert.alert("Error", "Please enter the OTP.");
       return;
     }
-
+  
     setLoading(true);
     try {
       const response = await verifyOtp(email, otp);
-
-      if (response.message) {
+  
+      // Log Full Response
+      console.log("🔹 Full OTP Verification Response:", response);
+  
+      // heck for a success message in response
+      if (response.message && response.message.includes("verified successfully")) {
         Alert.alert("Success", "OTP Verified Successfully!");
+  
+        // Log before navigation
+        console.log("✅ Redirecting to Biometrics...");
+        
+        navigation.replace("BiometricScreen");
+        
       } else {
         Alert.alert("OTP Verification Failed", response.message || "Invalid OTP.");
       }
     } catch (error) {
+      console.error("❌ OTP Verification Error:", error);
       Alert.alert("Error", error.message || "Something went wrong.");
     }
     setLoading(false);
   };
+  
+  
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Enter OTP</Text>
