@@ -15,7 +15,7 @@ const AppNavigator = () => {
       <Stack.Screen name="OtpVerification" component={OtpScreen} />
       <Stack.Screen name="BiometricScreen" component={BiometricScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="QRScannerScreen" component={QRScannerScreen} />
+      {/* <Stack.Screen name="QRScannerScreen" component={QRScannerScreen} /> */}
     </Stack.Navigator>
   );
 };

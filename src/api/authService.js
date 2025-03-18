@@ -67,24 +67,22 @@ export const fetchUserBookings = async () => {
 };
 
 // Register Device API Call
-export const registerDevice = async (userId, deviceId) => {
+export const registerDevice = async (email, deviceId, deviceName) => {
   try {
-    const accessToken = await AsyncStorage.getItem("accessToken");
-
-    if (!accessToken) {
-      throw new Error("No access token found. Please log in again.");
-    }
+    // Log the details being posted for debugging
+    console.log("Posting device registration data:", { email, deviceId, deviceName });
 
     const response = await axios.post(
-      "https://43eextcx60.execute-api.ap-southeast-1.amazonaws.com/prod/registerDevice", 
-      { userId, deviceId },
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }
+      "https://43eextcx60.execute-api.ap-southeast-1.amazonaws.com/prod/registerDevice",
+      { email, deviceId, deviceName }
     );
+
+    // Log the response data for debugging
+    console.log("Response from registerDevice:", response.data);
 
     return response.data;
   } catch (error) {
+    console.error("Error in registerDevice API call:", error);
     throw error.response ? error.response.data : { message: "Network error" };
   }
 };

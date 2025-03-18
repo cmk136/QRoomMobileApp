@@ -42,18 +42,15 @@ const OtpScreen = ({ navigation, route }) => {
     try {
       const response = await verifyOtp(email, otp);
   
-      // Log Full Response
       console.log("🔹 Full OTP Verification Response:", response);
   
-      // heck for a success message in response
       if (response.message && response.message.includes("verified successfully")) {
         Alert.alert("Success", "OTP Verified Successfully!");
   
-        // Log before navigation
-        console.log("✅ Redirecting to Biometrics...");
-        
-        navigation.replace("BiometricScreen");
-        
+        // Debugging log before navigating
+        console.log("✅ Navigating to BiometricScreen with email:", email);
+  
+        navigation.replace("BiometricScreen", { email });
       } else {
         Alert.alert("OTP Verification Failed", response.message || "Invalid OTP.");
       }
@@ -63,8 +60,6 @@ const OtpScreen = ({ navigation, route }) => {
     }
     setLoading(false);
   };
-  
-  
 
   return (
     <View style={styles.container}>
