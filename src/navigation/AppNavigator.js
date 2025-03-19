@@ -4,7 +4,8 @@ import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import OtpScreen from "../screens/OtpScreen";
 import BiometricScreen from "../screens/BiometricScreen";
-import QRScannerScreen from "../screens/QRScannerScreen";
+import QRScanner from "../screens/QRScanner";
+import QRScanResults from "../screens/QRScanResults";
 
 const Stack = createStackNavigator();
 
@@ -15,7 +16,7 @@ const AppNavigator = () => {
       <Stack.Screen name="OtpVerification" component={OtpScreen} />
       <Stack.Screen name="BiometricScreen" component={BiometricScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
-      {/* <Stack.Screen name="QRScannerScreen" component={QRScannerScreen} /> */}
+      <Stack.Screen name="QRScanner" component={QRScanner} />
     </Stack.Navigator>
   );
 };

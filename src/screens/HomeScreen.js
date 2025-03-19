@@ -112,8 +112,10 @@ const HomeScreen = ({ navigation }) => {
       )}
 
       <View style={styles.qrButtonContainer}>
-        <TouchableOpacity style={styles.qrButton} onPress={handleScanQRCode}>
-          <Text style={styles.qrButtonText}>Scan QR Code</Text>
+        <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("QRScanner")}>
+          <Text style={styles.buttonText}>Open QR Scanner</Text>
         </TouchableOpacity>
       </View>
     </View>
