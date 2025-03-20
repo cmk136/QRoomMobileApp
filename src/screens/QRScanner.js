@@ -1,12 +1,40 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Button, TouchableOpacity } from "react-native";
+import React, { useContext, useState } from "react";
+import { View, Text, StyleSheet, Button, TouchableOpacity, Alert} from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useNavigation } from "@react-navigation/native";
+import { AppContext } from "../context/AppContext"; 
 
 export default function QRScanner() {
   const [hasScanned, setHasScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const navigation = useNavigation();
+  const {fetchWithAuth} = useContext(AppContext);
+
+  // Send JWT token to backend for verification
+  const verifyUserWithBackend = async (checkInJwt) => {
+    try {
+      const response = await fetchWithAuth(
+        "https://7r51juw656.execute-api.ap-southeast-1.amazonaws.com/prod/verifyUserBooking",
+        { 
+          method: "POST", 
+          body: JSON.stringify({checkInJwt})
+        }
+      );
+
+      const data = await response.json();
+      console.log("🔹 Server Response:", data);
+
+      if (data.success) {
+        Alert.alert("Verification Successful", "Identity verified successfully.");
+        navigation.replace("BioCheckAuth");
+      } else {
+        Alert.alert("Verification Failed", "Identity verification failed.");
+      }
+    } catch (error) {
+      console.error("Verification Error:", error);
+      Alert.alert("Error", error.message || "Something went wrong.");
+    }
+  };
 
   // Handle permissions
   if (!permission) {
@@ -24,8 +52,7 @@ export default function QRScanner() {
   // Handle QR code scanning
   const handleBarCodeScanned = ({ data }) => {
     setHasScanned(true);
-    alert(`Scanned QR Code: ${data}`);
-    navigation.navigate("QRScanResults", { qrData: data });
+    verifyUserWithBackend(data);
   };
 
   return (

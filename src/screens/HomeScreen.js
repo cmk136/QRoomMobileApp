@@ -67,7 +67,7 @@ const HomeScreen = ({ navigation }) => {
       Alert.alert("Error", "Camera permission is required to scan QR codes.");
       return;
     }
-    navigation.navigate("QRScanner"); //
+    navigation.replace("QRScanner"); //
   };
 
   const handleLogout = async () => {
@@ -81,7 +81,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleScanQRCode = () => {
-    navigation.navigate("QRScannerScreen");
+    navigation.replace("QRScanner");
   };
 
   return (
@@ -114,8 +114,8 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.qrButtonContainer}>
         <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate("QRScanner")}>
-          <Text style={styles.buttonText}>Open QR Scanner</Text>
+        onPress={() => navigation.replace("QRScanner")}>
+          <Text style={styles.buttonText}>Check-In</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -125,34 +125,86 @@ const HomeScreen = ({ navigation }) => {
 export default HomeScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f5f5f5", padding: 20 },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
-  subtitle: { fontSize: 18, fontWeight: "bold", marginTop: 10, marginBottom: 5 },
-  bookingCard: { width: "100%", backgroundColor: "white", padding: 15, marginBottom: 10, borderRadius: 10, borderWidth: 1, borderColor: "#ccc" },
-  bookingText: { fontSize: 16 },
-  noBookingText: { fontSize: 16, color: "#777", textAlign: "center", marginTop: 20 },
-  scrollView: { width: "100%", marginBottom: 20 },
-
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+    padding: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#555",
+    marginTop: 10,
+    marginBottom: 5,
+    textAlign: "center",
+  },
+  bookingCard: {
+    width: "100%",
+    backgroundColor: "white",
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  bookingText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  noBookingText: {
+    fontSize: 16,
+    color: "#777",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  scrollView: {
+    width: "100%",
+    marginBottom: 20,
+  },
   qrButtonContainer: {
     position: "absolute",
     bottom: 30,
-    width: "100%",
+    left: 0,
+    right: 0,
+    alignItems: "center", 
+  },
+  button: {
+    width: "75%", 
+    maxWidth: 280, 
+    backgroundColor: "#007bff", 
+    paddingVertical: 12, 
+    borderRadius: 8, 
     alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  qrButton: {
-    backgroundColor: "#28a745",
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-  },
-  qrButtonText: {
+  
+  buttonText: {
     color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600", 
+    letterSpacing: 0.5, 
   },
+  
   logoutButton: {
     marginRight: 15,
-    backgroundColor: "red",
+    backgroundColor: "#dc3545",
     padding: 10,
     borderRadius: 50,
   },
