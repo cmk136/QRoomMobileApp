@@ -30,6 +30,7 @@ const HomeScreen = ({ navigation }) => {
         headerRight: () => (
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out-outline" size={24} color="white" />
+            <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         ),
       });
@@ -67,7 +68,7 @@ const HomeScreen = ({ navigation }) => {
       Alert.alert("Error", "Camera permission is required to scan QR codes.");
       return;
     }
-    navigation.replace("QRScanner"); //
+    navigation.replace("QRScanner");
   };
 
   const handleLogout = async () => {
@@ -78,10 +79,6 @@ const HomeScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert("Error", "Failed to logout. Please try again.");
     }
-  };
-
-  const handleScanQRCode = () => {
-    navigation.replace("QRScanner");
   };
 
   return (
@@ -203,9 +200,18 @@ const styles = StyleSheet.create({
   },
   
   logoutButton: {
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#000", 
+    paddingVertical: 10, 
+    paddingHorizontal: 15, 
+    borderRadius: 30, 
     marginRight: 15,
-    backgroundColor: "#dc3545",
-    padding: 10,
-    borderRadius: 50,
+  },
+  logoutText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 5, 
   },
 });

@@ -1,17 +1,50 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext} from "react";
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import { AppContext } from "../context/AppContext";
 
 export default function OTPCheckIn() {
   const navigation = useNavigation();
   const route = useRoute();
   const receivedOtp = route.params?.otp || null;
+  const receivedBookingId = route.params?.bookingId || null;
 
   const [otp, setOtp] = useState(receivedOtp); //Future Implementation to dynamically update OTP after timer expires.
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes (300 seconds)
   const [loading, setLoading] = useState(!receivedOtp);
+  const { fetchWithAuth } = useContext(AppContext);
+
+
+  
+  const checkUnlockStatus = async () => {
+    let isUnlocked = false;
+    
+    while (!isUnlocked) {
+      try {
+        const response = await fetchWithAuth("https://dx3ki16cm6.execute-api.ap-southeast-1.amazonaws.com/prod/checkUnlock", {
+          method: "POST",
+          body: JSON.stringify({ bookingId : receivedBookingId }),
+        });
+  
+        const data = await response.json();
+        console.log(data);
+        if (data.success && data.isUnlocked) {
+          isUnlocked = true;
+          console.log("Room unlocked!");
+          // Navigate to success screen
+          navigation.replace("CheckInAuth");
+        }
+      } catch (error) {
+        console.error("Error checking unlock:", error);
+      }
+
+      // Wait for 5 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+};
 
   useEffect(() => {
+    checkUnlockStatus();
     if (receivedOtp) {
       setLoading(false);
     }

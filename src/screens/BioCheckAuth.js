@@ -32,7 +32,7 @@ export default function BioCheckAuth() {
 
       if (data.success) {
         Alert.alert("Verification Successful", "Device verified successfully.");
-        navigation.replace("OtpCheckAuth", { otp: data.otp });
+        navigation.replace("OtpCheckAuth", { otp: data.otp , bookingId: data.bookingId});
       } else {
         Alert.alert("Verification Failed", data.message || "Invalid device.");
       }
