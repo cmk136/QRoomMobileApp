@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Device from "expo-device";  // ✅ Import expo-device
-import { registerDevice } from "../api/authService"; // ✅ Import API function
+import * as Device from "expo-device";  
+import { registerDevice } from "../api/authService"; 
 
 const BiometricScreen = ({ navigation, route }) => {
   const [deviceId, setDeviceId] = useState(null);
@@ -14,44 +14,32 @@ const BiometricScreen = ({ navigation, route }) => {
     const fetchDeviceDetails = async () => {
       try {
         if (!Device.isDevice) {
-          console.warn("⚠️ Device module is only available on physical devices!");
+          console.warn("Device module is only available on physical devices!");
           return;
         }
 
-        const id = Device.osInternalBuildId || Device.deviceName || "UnknownDevice";
+        const id = Device.osBuildId || Device.deviceName || "UnknownDevice";
         const name = Device.deviceName || "Unknown Device";
 
         setDeviceId(id);
         setDeviceName(name);
 
-        console.log("🔹 Device ID:", id);
-        console.log("🔹 Device Name:", name);
+        // Store the device ID in AsyncStorage
+        await AsyncStorage.setItem("registeredDeviceId", id);
+
+        console.log("Registered Device ID:", id);
+        console.log("Device Name:", name);
       } catch (error) {
-        console.error("❌ Error fetching device details:", error);
+        console.error("Error fetching device details:", error);
       }
     };
 
     fetchDeviceDetails();
-
-    const checkToken = async () => {
-      const token = await AsyncStorage.getItem("accessToken");
-
-      if (email) {
-        console.log("🔹 Email Passed to BiometricScreen:", email);
-      } else {
-        console.warn("⚠️ No email found in route params!");
-      }
-
-      console.log("🔹 Token in BiometricScreen:", token);
-    };
-
-    checkToken();
   }, []);
 
   const authenticateWithBiometrics = async () => {
     try {
       if (!email) {
-        console.error("❌ Missing email parameter");
         Alert.alert("Error", "Email is missing. Cannot proceed.");
         return;
       }
@@ -74,39 +62,30 @@ const BiometricScreen = ({ navigation, route }) => {
         cancelLabel: "Cancel",
       });
 
-      console.log("🔹 Biometric Authentication Result:", result);
-
       if (result.success) {
         Alert.alert("Success", "Biometric Authentication Enabled!");
-        await AsyncStorage.setItem("biometricsEnabled", "true");
 
-        console.log("✅ Email:", email);
-        console.log("✅ Device ID:", deviceId);
-        console.log("✅ Device Name:", deviceName);
+        console.log("Email:", email);
+        console.log("Device ID:", deviceId);
+        console.log("Device Name:", deviceName);
 
-        // ✅ Register the device after successful biometrics
         if (deviceId && deviceName) {
           try {
             const response = await registerDevice(email, deviceId, deviceName);
-            console.log("✅ Device Registered Successfully:", response);
+            console.log("Device Registered Successfully:", response);
           } catch (error) {
-            console.error("❌ Device Registration Error:", error);
+            console.error("Device Registration Error:", error);
           }
         } else {
-          console.warn("⚠️ Device details not available yet. Fetching again...");
-          fetchDeviceDetails();
+          console.warn("Device details not available yet.");
         }
-
-        // Retrieve and log the access token
-        const accessToken = await AsyncStorage.getItem("accessToken");
-        console.log("✅ Access Token:", accessToken);
 
         navigation.replace("Home");
       } else {
         Alert.alert("Biometric Authentication Failed", "Please try again.");
       }
     } catch (error) {
-      console.error("❌ Biometric Authentication Error:", error);
+      console.error("Biometric Authentication Error:", error);
       Alert.alert("Error", "An error occurred during authentication.");
     }
   };

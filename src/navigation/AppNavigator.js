@@ -8,6 +8,7 @@ import QRScanner from "../screens/QRScanner";
 import BioCheckAuth from "../screens/BioCheckAuth";
 import OtpCheckAuth from "../screens/OtpCheckAuth";
 import CheckInAuth from "../screens/CheckInAuth";
+import PasswordChange from "../screens/PasswordChange"; 
 
 const Stack = createStackNavigator();
 
@@ -16,6 +17,7 @@ const AppNavigator = () => {
     <Stack.Navigator initialRouteName="Login">
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="OtpVerification" component={OtpScreen} />
+      <Stack.Screen name="PasswordChange" component={PasswordChange} />
       <Stack.Screen name="BiometricScreen" component={BiometricScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="QRScanner" component={QRScanner} />

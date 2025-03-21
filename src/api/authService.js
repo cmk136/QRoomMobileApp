@@ -66,6 +66,19 @@ export const fetchUserBookings = async () => {
   }
 };
 
+// Change Initial Password API Call
+export const changeInitialPassword = async (email, newPassword) => {
+  try {
+    const response = await axios.post(
+      "https://n1mmmualre.execute-api.ap-southeast-1.amazonaws.com/prod/changeInitialPasswordAPI",
+      { email, newPassword }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: "Network error" };
+  }
+};
+
 // Register Device API Call
 export const registerDevice = async (email, deviceId, deviceName) => {
   try {

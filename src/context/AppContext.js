@@ -82,7 +82,7 @@ export const AppContextProvider = ({ children }) => {
       const user = await getUserData();
       if (user) {
         setUserData(user);
-        console.log("✅ User data set after login:", user);
+        console.log("User data set after login:", user);
         navigation.replace("Home"); // Redirect after login
       } else {
         Alert.alert("Error", "Failed to fetch user details. Please try again.");
@@ -129,7 +129,7 @@ export const AppContextProvider = ({ children }) => {
   // Fetch API with authentication
   const fetchWithAuth = async (url, options = {}) => {
     let accessToken = await AsyncStorage.getItem("accessToken");
-    console.log("🔹 Initial accessToken:", accessToken);
+    console.log("Initial accessToken:", accessToken);
 
     const fetchOptions = {
       ...options,
@@ -145,7 +145,7 @@ export const AppContextProvider = ({ children }) => {
     if (response.status === 401 || response.status === 403) {
       console.log("Access token expired. Attempting to refresh...");
       accessToken = await refreshToken();
-      console.log("🔹 New accessToken:", accessToken);
+      console.log("New accessToken:", accessToken);
 
       if (!accessToken) {
         console.log("Refresh token expired. Logging out...");

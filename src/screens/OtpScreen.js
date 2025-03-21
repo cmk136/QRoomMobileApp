@@ -15,7 +15,6 @@ const OtpScreen = ({ navigation, route }) => {
 
     try{
       const response = await sendVerifyOtp(email);
-      console.log("OTP is: ", response.otp)
       Alert.alert("OTP Sent", response.message);
 
     } catch(error){
@@ -42,20 +41,20 @@ const OtpScreen = ({ navigation, route }) => {
     try {
       const response = await verifyOtp(email, otp);
   
-      console.log("🔹 Full OTP Verification Response:", response);
+      console.log("Full OTP Verification Response:", response);
   
       if (response.message && response.message.includes("verified successfully")) {
         Alert.alert("Success", "OTP Verified Successfully!");
   
         // Debugging log before navigating
-        console.log("✅ Navigating to BiometricScreen with email:", email);
+        console.log("Navigating to BiometricScreen with email:", email);
   
-        navigation.replace("BiometricScreen", { email });
+        navigation.replace("PasswordChange", { email });
       } else {
         Alert.alert("OTP Verification Failed", response.message || "Invalid OTP.");
       }
     } catch (error) {
-      console.error("❌ OTP Verification Error:", error);
+      console.error("OTP Verification Error:", error);
       Alert.alert("Error", error.message || "Something went wrong.");
     }
     setLoading(false);

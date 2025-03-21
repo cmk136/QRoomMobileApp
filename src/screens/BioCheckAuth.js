@@ -1,7 +1,7 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
-import * as Device from "expo-device";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppContext } from "../context/AppContext";
 import { useNavigation } from "@react-navigation/native";
 
@@ -9,21 +9,35 @@ export default function BioCheckAuth() {
   const { fetchWithAuth } = useContext(AppContext);
   const navigation = useNavigation();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [storedDeviceId, setStoredDeviceId] = useState(null);
 
-  // Verify User's Device & Fetch OTP
+  useEffect(() => {
+    const getStoredDeviceId = async () => {
+      const deviceId = await AsyncStorage.getItem("registeredDeviceId");
+      setStoredDeviceId(deviceId);
+      console.log("🔹 Stored Device ID for Verification:", deviceId);
+    };
+
+    getStoredDeviceId();
+  }, []);
+
   const verifyUserDevice = async () => {
-    if (isAuthenticating) return; // Prevent multiple clicks
+    if (isAuthenticating) return;
     setIsAuthenticating(true);
 
     try {
-      const deviceId = Device.osBuildId; // Get device ID
-      console.log("Verifying Device ID:", deviceId);
+      if (!storedDeviceId) {
+        Alert.alert("Error", "Device ID not found. Please try registering again.");
+        return;
+      }
+
+      console.log("Verifying Device ID:", storedDeviceId);
 
       const response = await fetchWithAuth(
         "https://tk03adtmuc.execute-api.ap-southeast-1.amazonaws.com/prod/verifyDeviceId",
         {
           method: "POST",
-          body: JSON.stringify({ bookingDeviceId : deviceId }),
+          body: JSON.stringify({ bookingDeviceId: storedDeviceId }),
         }
       );
 
@@ -32,7 +46,7 @@ export default function BioCheckAuth() {
 
       if (data.success) {
         Alert.alert("Verification Successful", "Device verified successfully.");
-        navigation.replace("OtpCheckAuth", { otp: data.otp , bookingId: data.bookingId});
+        navigation.replace("OtpCheckAuth", { otp: data.otp, bookingId: data.bookingId });
       } else {
         Alert.alert("Verification Failed", data.message || "Invalid device.");
       }
@@ -44,14 +58,13 @@ export default function BioCheckAuth() {
     }
   };
 
-  // Handle Biometric Authentication before verifying the device
   const handleBiometricAuth = async () => {
     const biometricAuth = await LocalAuthentication.authenticateAsync({
       promptMessage: "Authenticate to continue",
     });
 
     if (biometricAuth.success) {
-      verifyUserDevice(); // Call the function to verify device ID & get OTP after biometric success
+      verifyUserDevice();
     } else {
       Alert.alert("Authentication Failed", "Please try again.");
     }
