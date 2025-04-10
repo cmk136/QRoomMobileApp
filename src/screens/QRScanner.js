@@ -1,29 +1,34 @@
 import React, { useContext, useState } from "react";
-import { View, Text, StyleSheet, Button, TouchableOpacity, Alert} from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Button,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useNavigation } from "@react-navigation/native";
-import { AppContext } from "../context/AppContext"; 
+import { AppContext } from "../context/AppContext";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function QRScanner() {
   const [hasScanned, setHasScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const navigation = useNavigation();
-  const {fetchWithAuth} = useContext(AppContext);
+  const { fetchWithAuth } = useContext(AppContext);
 
-  // Send JWT token to backend for verification
   const verifyUserWithBackend = async (checkInJwt) => {
     try {
       const response = await fetchWithAuth(
         "https://7r51juw656.execute-api.ap-southeast-1.amazonaws.com/prod/verifyUserBooking",
-        { 
-          method: "POST", 
-          body: JSON.stringify({checkInJwt})
+        {
+          method: "POST",
+          body: JSON.stringify({ checkInJwt }),
         }
       );
 
       const data = await response.json();
-      console.log("🔹 Server Response:", data);
-
       if (data.success) {
         Alert.alert("Verification Successful", "Identity verified successfully.");
         navigation.replace("BioCheckAuth");
@@ -36,10 +41,7 @@ export default function QRScanner() {
     }
   };
 
-  // Handle permissions
-  if (!permission) {
-    return <View />;
-  }
+  if (!permission) return <View />;
   if (!permission.granted) {
     return (
       <View style={styles.container}>
@@ -49,7 +51,6 @@ export default function QRScanner() {
     );
   }
 
-  // Handle QR code scanning
   const handleBarCodeScanned = ({ data }) => {
     setHasScanned(true);
     verifyUserWithBackend(data);
@@ -57,15 +58,22 @@ export default function QRScanner() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
       <CameraView
         style={styles.camera}
         onBarcodeScanned={hasScanned ? undefined : handleBarCodeScanned}
-        barcodeScannerSettings={{
-          barcodeTypes: ["qr"],
-        }}
+        barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
       >
         {hasScanned && (
-          <TouchableOpacity style={styles.scanAgainButton} onPress={() => setHasScanned(false)}>
+          <TouchableOpacity
+            style={styles.scanAgainButton}
+            onPress={() => setHasScanned(false)}
+          >
             <Text style={styles.scanAgainText}>Tap to Scan Again</Text>
           </TouchableOpacity>
         )}
@@ -97,5 +105,16 @@ const styles = StyleSheet.create({
   scanAgainText: {
     color: "white",
     fontSize: 16,
+  },
+  topBar: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    zIndex: 10,
+  },
+  backButton: {
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 20,
+    padding: 8,
   },
 });

@@ -27,7 +27,7 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem("accessToken", response.accessToken);
         await AsyncStorage.setItem("refreshToken", response.refreshToken);
 
-        navigation.replace("Home");
+        navigation.replace("Dashboard");
       } else {
         Alert.alert("Login Failed", response.message || "Invalid credentials");
       }

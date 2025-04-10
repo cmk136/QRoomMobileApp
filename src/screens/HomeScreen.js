@@ -1,10 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, ActivityIndicator, Alert, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  SafeAreaView,
+} from "react-native-safe-area-context";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchUserBookings } from "../api/authService";
-import { ScrollView } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons"; 
+import { Ionicons } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
 
 const HomeScreen = ({ navigation }) => {
@@ -16,26 +25,6 @@ const HomeScreen = ({ navigation }) => {
     fetchBookings();
     requestCameraPermission();
   }, []);
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
-      setHasPermission(status === "granted");
-    })();
-  }, []);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      navigation.setOptions({
-        headerRight: () => (
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={24} color="white" />
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        ),
-      });
-    }, [])
-  );
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -63,14 +52,6 @@ const HomeScreen = ({ navigation }) => {
     setHasPermission(status === "granted");
   };
 
-  const openQRScanner = () => {
-    if (hasPermission === false) {
-      Alert.alert("Error", "Camera permission is required to scan QR codes.");
-      return;
-    }
-    navigation.replace("QRScanner");
-  };
-
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("accessToken");
@@ -82,13 +63,21 @@ const HomeScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Logout Button (Top Right) */}
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Ionicons name="log-out-outline" size={24} color="white" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.title}>Hello!</Text>
 
       {loading ? (
         <ActivityIndicator size="large" color="#007bff" />
       ) : booking.length > 0 ? (
-        <ScrollView style={styles.scrollView}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 100 }}>
           <Text style={styles.subtitle}>Your Upcoming Bookings:</Text>
           {booking.map((booking, index) => (
             <View key={index} style={styles.bookingCard}>
@@ -107,15 +96,7 @@ const HomeScreen = ({ navigation }) => {
           You have no upcoming bookings. Book a room on the website!
         </Text>
       )}
-
-      <View style={styles.qrButtonContainer}>
-        <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.replace("QRScanner")}>
-          <Text style={styles.buttonText}>Check-In</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -124,27 +105,31 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#fafafa",
     padding: 20,
+  },
+  logoutContainer: {
+    alignItems: "flex-end",
+    marginBottom: 10,
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
+    color: "#1c1c1d", 
     marginBottom: 10,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#555",
+    color: "#28282a", 
     marginTop: 10,
     marginBottom: 5,
     textAlign: "center",
   },
   bookingCard: {
     width: "100%",
-    backgroundColor: "white",
+    backgroundColor: "#ffffff", 
     padding: 15,
     marginBottom: 10,
     borderRadius: 10,
@@ -152,17 +137,17 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 1,
   },
   bookingText: {
     fontSize: 16,
-    color: "#333",
+    color: "#1c1c1d", 
   },
   noBookingText: {
     fontSize: 16,
-    color: "#777",
+    color: "#28282a", 
     textAlign: "center",
     marginTop: 20,
   },
@@ -170,48 +155,18 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 20,
   },
-  qrButtonContainer: {
-    position: "absolute",
-    bottom: 30,
-    left: 0,
-    right: 0,
-    alignItems: "center", 
-  },
-  button: {
-    width: "75%", 
-    maxWidth: 280, 
-    backgroundColor: "#007bff", 
-    paddingVertical: 12, 
-    borderRadius: 8, 
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600", 
-    letterSpacing: 0.5, 
-  },
-  
   logoutButton: {
-    flexDirection: "row", 
-    alignItems: "center", 
-    backgroundColor: "#000", 
-    paddingVertical: 10, 
-    paddingHorizontal: 15, 
-    borderRadius: 30, 
-    marginRight: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1c1c1d", 
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 30,
   },
   logoutText: {
-    color: "white",
+    color: "#ffffff", 
     fontSize: 16,
     fontWeight: "bold",
-    marginLeft: 5, 
+    marginLeft: 5,
   },
 });
