@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { loginUser } from "../api/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -26,7 +34,6 @@ const LoginScreen = ({ navigation }) => {
       if (response.accessToken) {
         await AsyncStorage.setItem("accessToken", response.accessToken);
         await AsyncStorage.setItem("refreshToken", response.refreshToken);
-
         navigation.replace("Dashboard");
       } else {
         Alert.alert("Login Failed", response.message || "Invalid credentials");
@@ -40,12 +47,39 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>QRoom Login</Text>
-      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
-      <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Login</Text>}
-      </TouchableOpacity>
+      <View style={styles.card}>
+        <Text style={styles.title}>QRoom Login</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#28282a"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#28282a"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.buttonText}>Login</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -53,9 +87,54 @@ const LoginScreen = ({ navigation }) => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
-  input: { width: "100%", height: 50, borderRadius: 10, paddingHorizontal: 15, marginBottom: 15, borderWidth: 1 },
-  button: { width: "100%", height: 50, backgroundColor: "#007bff", justifyContent: "center", alignItems: "center", borderRadius: 10 },
-  buttonText: { color: "white", fontSize: 18, fontWeight: "bold" },
+  container: {
+    flex: 1,
+    backgroundColor: "#fafafa",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  card: {
+    width: "100%",
+    backgroundColor: "#ffffff",
+    padding: 24,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#1c1c1d",
+    marginBottom: 30,
+    textAlign: "center",
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#f5f5f3",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    color: "#1c1c1d",
+    backgroundColor: "#ffffff",
+  },
+  button: {
+    backgroundColor: "#1c1c1d",
+    height: 50,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
