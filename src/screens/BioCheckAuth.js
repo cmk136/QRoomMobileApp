@@ -3,23 +3,77 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppContext } from "../context/AppContext";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 export default function BioCheckAuth() {
   const { fetchWithAuth } = useContext(AppContext);
   const navigation = useNavigation();
+  const route = useRoute();
+
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [storedDeviceId, setStoredDeviceId] = useState(null);
+
+  const level = route?.params?.level || null;
+  const bookingId = route?.params?.bookingId || null;
 
   useEffect(() => {
     const getStoredDeviceId = async () => {
       const deviceId = await AsyncStorage.getItem("registeredDeviceId");
       setStoredDeviceId(deviceId);
-      console.log("🔹 Stored Device ID for Verification:", deviceId);
+      console.log("Stored Device ID for Verification:", deviceId);
     };
 
     getStoredDeviceId();
   }, []);
+
+  const unlockRoom = async () => {
+    try {
+      const response = await fetchWithAuth(
+        "https://c66lw5x49g.execute-api.ap-southeast-1.amazonaws.com/prod/setIsUnlocked", 
+        {
+          method: "POST",
+          body: JSON.stringify({ bookingId }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Unlock Room Response:", data);
+
+      if (data.success) {
+        Alert.alert("Room Unlocked", "Access granted.");
+        navigation.replace("CheckInAuth", { level, bookingId });
+      } else {
+        Alert.alert("Unlock Failed", data.message || "Unable to unlock room.");
+      }
+    } catch (error) {
+      console.error("Unlock error:", error);
+      Alert.alert("Error", "An error occurred while unlocking the room.");
+    }
+  };
+
+  const sendBookingOTP = async () => {
+    try {
+      const response = await fetchWithAuth(
+        "https://yyx5yuebgi.execute-api.ap-southeast-1.amazonaws.com/prod/sendBookingOtp", 
+        {
+          method: "POST",
+          body: JSON.stringify({ bookingId }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Unlock Room Response:", data);
+
+      if (data.success) {
+        navigation.replace("OtpCheckAuth", { bookingId, level });
+      } else {
+        Alert.alert("OTP could not be sent.");
+      }
+    } catch (error) {
+      console.error("Unlock error:", error);
+      Alert.alert("Error", "An error occurred while unlocking the room.");
+    }
+  };
 
   const verifyUserDevice = async () => {
     if (isAuthenticating) return;
@@ -42,11 +96,18 @@ export default function BioCheckAuth() {
       );
 
       const data = await response.json();
-      console.log("🔹 Server Response:", data);
+      console.log("Server Response:", data);
 
       if (data.success) {
         Alert.alert("Verification Successful", "Device verified successfully.");
-        navigation.replace("OtpCheckAuth", { otp: data.otp, bookingId: data.bookingId });
+
+        if (level === 2 && bookingId) {
+          await unlockRoom();
+        } if (level === 3 && bookingId) {
+          await sendBookingOTP();
+        } else {
+          Alert.alert("Invalid Security Level.")
+        }        
       } else {
         Alert.alert("Verification Failed", data.message || "Invalid device.");
       }

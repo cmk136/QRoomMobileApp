@@ -99,3 +99,125 @@ export const registerDevice = async (email, deviceId, deviceName) => {
     throw error.response ? error.response.data : { message: "Network error" };
   }
 };
+
+// Fetch User Devices 
+export const fetchUserDevices = async () => {
+  try {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    if (!accessToken) {
+      throw new Error("No access token found. Please log in again.");
+    }
+
+    const response = await axios.post(
+      "https://07e2pbmve3.execute-api.ap-southeast-1.amazonaws.com/prod/fetchDevices", 
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    return response.data.devices;
+  } catch (error) {
+    console.error("Error fetching devices:", error);
+    throw error.response ? error.response.data : { message: "Network error" };
+  }
+};
+
+//Verify Device -> OTP
+export const verifyDeviceOtp = async (otp) => {
+  try {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    if (!accessToken) {
+      throw new Error("Access token not found.");
+    }
+
+    const response = await fetch(
+      "https://pok91tugyk.execute-api.ap-southeast-1.amazonaws.com/prod/verifyOtpDevice",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ otp }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "OTP verification failed");
+    }
+
+    return result;
+  } catch (error) {
+    console.error("verifyDeviceOtp error:", error);
+    throw error;
+  }
+};
+
+// Send OTP to Verify Device
+export const sendDeviceVerifyOtp = async () => {
+  try {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    if (!accessToken) {
+      throw new Error("No access token found.");
+    }
+
+    const response = await fetch(
+      "https://nwndykuo0a.execute-api.ap-southeast-1.amazonaws.com/prod/deviceSendVerifyOtp",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to send OTP.");
+    }
+
+    return result;
+  } catch (error) {
+    console.error("sendDeviceVerifyOtp error:", error);
+    throw error;
+  }
+};
+
+//Adding New Device
+export const addUserDevice = async (deviceId, deviceName) => {
+  try {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    if (!accessToken) throw new Error("No access token found.");
+
+    const response = await fetch(
+      "https://h5pu37tklb.execute-api.ap-southeast-1.amazonaws.com/prod/addDevice",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ deviceId, deviceName }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to add device.");
+    }
+
+    return result;
+  } catch (error) {
+    console.error("addUserDevice error:", error);
+    throw error;
+  }
+};

@@ -6,12 +6,8 @@ import { AppContext } from "../context/AppContext";
 export default function OTPCheckIn() {
   const navigation = useNavigation();
   const route = useRoute();
-  const receivedOtp = route.params?.otp || null;
   const receivedBookingId = route.params?.bookingId || null;
 
-  const [otp, setOtp] = useState(receivedOtp); //Future Implementation to dynamically update OTP after timer expires.
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes (300 seconds)
-  const [loading, setLoading] = useState(!receivedOtp);
   const { fetchWithAuth } = useContext(AppContext);
 
 
@@ -45,53 +41,15 @@ export default function OTPCheckIn() {
 
   useEffect(() => {
     checkUnlockStatus();
-    if (receivedOtp) {
-      setLoading(false);
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prevTime) => {
-        if (prevTime === 1) {
-          // When time runs out, alert user & send them back
-          Alert.alert(
-            "OTP Expired",
-            "Your OTP has expired. Please restart the check-in process.",
-            [{ text: "OK", onPress: () => navigation.replace("Home") }]
-          );
-          clearInterval(timer);
-        }
-        return prevTime > 0 ? prevTime - 1 : 0;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer); // Cleanup timer on unmount
   }, []);
-
-  const formatTime = () => {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Enter OTP</Text>
+      <Text style={styles.title}>Check Email for OTP.</Text>
       <Text style={styles.subtitle}>
-        Enter the OTP below on the Door System to unlock the room.
+        Key in OTP into the Kiosk Screen.
       </Text>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#007bff" />
-      ) : (
-        <>
-          <View style={styles.otpContainer}>
-            <Text style={styles.otpText}>{otp}</Text>
-          </View>
-          <Text style={styles.expiryText}>Your OTP will expire in: {formatTime()}</Text>
-        </>
-      )}
-
-      <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.replace("Home")}>
+      <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.replace("Dashboard")}>
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
     </View>

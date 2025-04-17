@@ -1,5 +1,3 @@
-// src/navigation/AppNavigator.js
-
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 
@@ -13,6 +11,7 @@ import CheckInAuth from "../screens/CheckInAuth";
 
 import DashboardTabs from "./DashboardTabs";
 import QRScanner from "../screens/QRScanner";
+import DevicesScreen from "../screens/DevicesScreen";
 
 const Stack = createStackNavigator();
 
@@ -32,6 +31,9 @@ const AppNavigator = () => {
 
       {/* QR Scanner screen */}
       <Stack.Screen name="QRScanner" component={QRScanner} />
+
+      {/* Devices screen */}
+      <Stack.Screen name="Devices" component={DevicesScreen} />
     </Stack.Navigator>
   );
 };

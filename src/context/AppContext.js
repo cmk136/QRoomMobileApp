@@ -50,14 +50,17 @@ export const AppContextProvider = ({ children }) => {
   const getUserData = async () => {
     try {
       const userResponse = await fetchWithAuth("https://6rf5b9p1l7.execute-api.ap-southeast-1.amazonaws.com/prod/userData");
-      if (!userResponse.ok) throw new Error("Failed to fetch user data");
-
+      if (!userResponse.ok) {
+        const err = await userResponse.text();
+        console.error("User data fetch failed:", err);
+        throw new Error("Failed to fetch user data");
+      }
       return await userResponse.json();
     } catch (error) {
-      Alert.alert("Error", error.message);
+      console.error("getUserData error:", error.message);
       return null;
     }
-  };
+  };  
 
   // Login user
   const loginUser = async (email, password) => {
@@ -67,7 +70,7 @@ export const AppContextProvider = ({ children }) => {
         { email, password }
       );
 
-      console.log("🔹 Login Response:", response.data);
+      console.log("Login Response:", response.data);
 
       if (!response.data.accessToken) {
         Alert.alert("Login Failed", response.data.message);

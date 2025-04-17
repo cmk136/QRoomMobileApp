@@ -1,34 +1,32 @@
-// src/navigation/DashboardTabs.js
+import React, { useState } from "react";
+import { TouchableOpacity, Platform, StyleSheet, Text } from "react-native";
+import { CurvedBottomBarExpo } from "react-native-curved-bottom-bar";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useNavigation } from "@react-navigation/native";
 
-import React, { useState } from 'react';
-import { TouchableOpacity, Platform, StyleSheet, Text } from 'react-native';
-import { CurvedBottomBarExpo } from 'react-native-curved-bottom-bar';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import HomeScreen from "../screens/HomeScreen";
+import RoomBookingScreen from "../screens/RoomBookingScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 
-import HomeScreen from '../screens/HomeScreen';
-import RoomBookingScreen from '../screens/RoomBookingScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-
-const DashboardTabs = () => {
+const DashboardTabs = ({ route }) => {
   const navigation = useNavigation();
-  const [currentTab, setCurrentTab] = useState('Home');
+  const [currentTab, setCurrentTab] = useState(route?.params?.initialTab || "Home");
 
   const getIconName = (routeName) => {
     switch (routeName) {
-      case 'RoomBooking':
-        return 'calendar-outline';
-      case 'Profile':
-        return 'person-outline';
+      case "RoomBooking":
+        return "calendar-outline";
+      case "Profile":
+        return "person-outline";
       default:
-        return 'ellipse';
+        return "ellipse";
     }
   };
 
   const renderTabBar = ({ routeName, selectedTab, navigate }) => {
     const isActive = routeName === selectedTab;
-    const iconColor = isActive ? '#1c1c1d' : '#28282a';
-    const labelColor = isActive ? '#1c1c1d' : '#28282a';
+    const iconColor = isActive ? "#ffffff" : "#bbb"; 
+    const labelColor = isActive ? "#ffffff" : "#999"; 
 
     return (
       <TouchableOpacity
@@ -48,9 +46,9 @@ const DashboardTabs = () => {
     <CurvedBottomBarExpo.Navigator
       type="DOWN"
       circlePosition="CENTER"
-      initialRouteName="Home"
+      initialRouteName={currentTab}
       screenOptions={{ headerShown: false }}
-      backgroundColor="#f5f5f3"
+      backgroundColor="#000" 
       height={60}
       borderTopLeftRight
       shadowStyle={styles.shadow}
@@ -60,18 +58,18 @@ const DashboardTabs = () => {
         <TouchableOpacity
           style={styles.btnCircle}
           onPress={() => {
-            if (currentTab === 'Home') {
-              navigation.navigate('QRScanner');
+            if (currentTab === "Home") {
+              navigation.navigate("QRScanner");
             } else {
-              setCurrentTab('Home');
-              navigate('Home');
+              setCurrentTab("Home");
+              navigate("Home");
             }
           }}
         >
           <Ionicons
-            name={currentTab === 'Home' ? 'qr-code' : 'home-outline'}
+            name={currentTab === "Home" ? "qr-code" : "home-outline"}
             size={28}
-            color="#1c1c1d"
+            color="#1c1c1d" 
           />
         </TouchableOpacity>
       )}
@@ -83,18 +81,20 @@ const DashboardTabs = () => {
   );
 };
 
+export default DashboardTabs;
+
 const styles = StyleSheet.create({
   tabBarItem: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabLabel: {
     fontSize: 12,
     marginTop: 2,
   },
   shadow: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -104,14 +104,14 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#ffffff", 
+    alignItems: "center",
+    justifyContent: "center",
     bottom: 30,
     ...Platform.select({
       android: { elevation: 5 },
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOpacity: 0.3,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 2 },
@@ -119,5 +119,3 @@ const styles = StyleSheet.create({
     }),
   },
 });
-
-export default DashboardTabs;

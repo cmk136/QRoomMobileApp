@@ -27,19 +27,65 @@ export default function QRScanner() {
           body: JSON.stringify({ checkInJwt }),
         }
       );
-
+  
       const data = await response.json();
-      if (data.success) {
-        Alert.alert("Verification Successful", "Identity verified successfully.");
-        navigation.replace("BioCheckAuth");
-      } else {
-        Alert.alert("Verification Failed", "Identity verification failed.");
+  
+      if (!data.success) {
+        Alert.alert("Verification Failed", "QR code is invalid or expired.");
+        return;
       }
+  
+      const level = data.securityLevel;
+      const bookingId = data.bookingId;
+
+      console.log(level);
+      
+      if (!bookingId) {
+        Alert.alert("Error", "Booking ID missing. Cannot proceed.");
+        return;
+      }
+  
+      if (level === 1) {
+        try {
+          const unlockResponse = await fetchWithAuth(
+            "https://c66lw5x49g.execute-api.ap-southeast-1.amazonaws.com/prod/setIsUnlocked", 
+            {
+              method: "POST",
+              body: JSON.stringify({ bookingId }),
+            }
+          );
+  
+          const unlockData = await unlockResponse.json();
+  
+          if (unlockData.success) {
+            navigation.replace("CheckInAuth", {
+              level,
+              bookingId,
+            });
+          } else {
+            Alert.alert("Unlock Failed", unlockData.message || "Unable to unlock room.");
+          }
+        } catch (error) {
+          console.error("Unlock API Error:", error);
+          Alert.alert("Error", "An error occurred while unlocking the room.");
+        }
+  
+      } else if (level === 2 || level === 3) {
+        navigation.replace("BioCheckAuth", {
+          level,
+          bookingId,
+        });
+
+      } else {
+        Alert.alert("Invalid Security Level");
+      }
+  
     } catch (error) {
       console.error("Verification Error:", error);
       Alert.alert("Error", error.message || "Something went wrong.");
     }
   };
+  
 
   if (!permission) return <View />;
   if (!permission.granted) {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,62 @@ import {
   Alert,
   StyleSheet,
   ActivityIndicator,
+  Dimensions,
+  Image,
 } from "react-native";
+import Svg, { Circle } from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 import { loginUser } from "../api/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const { width, height } = Dimensions.get("window");
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const blobs = [
+    { cx: useSharedValue(width * 0.3), cy: useSharedValue(height * 0.2), r: useSharedValue(90), fill: "#c1c1c1", opacity: 0.3, dx: width * 0.35, dy: height * 0.25, dr: 110, dur: 8000 },
+    { cx: useSharedValue(width * 0.7), cy: useSharedValue(height * 0.7), r: useSharedValue(70), fill: "#a1a1a1", opacity: 0.3, dx: width * 0.6, dy: height * 0.6, dr: 90, dur: 7000 },
+    { cx: useSharedValue(width * 0.5), cy: useSharedValue(height * 0.4), r: useSharedValue(100), fill: "#888888", opacity: 0.25, dx: width * 0.4, dy: height * 0.55, dr: 120, dur: 9000 },
+    { cx: useSharedValue(width * 0.25), cy: useSharedValue(height * 0.8), r: useSharedValue(75), fill: "#666666", opacity: 0.3, dx: width * 0.3, dy: height * 0.6, dr: 100, dur: 9500 },
+    { cx: useSharedValue(width * 0.8), cy: useSharedValue(height * 0.2), r: useSharedValue(85), fill: "#444444", opacity: 0.25, dx: width * 0.7, dy: height * 0.3, dr: 110, dur: 10000 },
+  ];
+
+  const animatedPropsList = blobs.map((blob, i) => {
+    useEffect(() => {
+      blob.cx.value = withRepeat(
+        withTiming(blob.dx, { duration: blob.dur, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      blob.cy.value = withRepeat(
+        withTiming(blob.dy, { duration: blob.dur + 2000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      blob.r.value = withRepeat(
+        withTiming(blob.dr, { duration: blob.dur + 1000, easing: Easing.linear }),
+        -1,
+        true
+      );
+    }, []);
+
+    return useAnimatedProps(() => ({
+      cx: blob.cx.value,
+      cy: blob.cy.value,
+      r: blob.r.value,
+    }));
+  });
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -47,8 +95,21 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <Svg height={height} width={width} style={StyleSheet.absoluteFill}>
+        {blobs.map((blob, index) => (
+          <AnimatedCircle
+            key={index}
+            animatedProps={animatedPropsList[index]}
+            fill={blob.fill}
+            opacity={blob.opacity}
+          />
+        ))}
+      </Svg>
+
+      <Image source={require("../assets/logo.png")} style={styles.logo} resizeMode="contain" />
+
       <View style={styles.card}>
-        <Text style={styles.title}>QRoom Login</Text>
+        <Text style={styles.title}>Login</Text>
 
         <TextInput
           style={styles.input}
@@ -94,6 +155,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
   },
+  logo: {
+    width: 140,
+    height: 140,
+    marginBottom: 20,
+    zIndex: 3,
+  },
   card: {
     width: "100%",
     backgroundColor: "#ffffff",
@@ -104,6 +171,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+    zIndex: 2,
   },
   title: {
     fontSize: 26,

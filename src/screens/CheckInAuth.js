@@ -11,7 +11,7 @@ export default function CheckInAuth() {
       <Ionicons name="checkmark-circle" size={100} color="green" />
       <Text style={styles.text}>You're Checked In!</Text>
       
-      <TouchableOpacity style={styles.button} onPress={() => navigation.replace("Home")}>
+      <TouchableOpacity style={styles.button} onPress={() => navigation.replace("Dashboard")}>
         <Text style={styles.buttonText}>Go Back</Text>
       </TouchableOpacity>
     </View>
