@@ -2,28 +2,6 @@ import axios from "axios";
 import * as Device from "expo-device";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Login API Call
-export const loginUser = async (email, password) => {
-  try {
-    const response = await axios.post('https://fqpoqnrwzi.execute-api.ap-southeast-1.amazonaws.com/prod/login', { email, password });
-    return response.data;
-  } catch (error) {
-    if (error.response) {
-      const { status, data } = error.response;
-      // Explicitly check if this is an OTP verification error
-      if (status === 403 && data.requiresVerification) {
-        return { requiresVerification: true }; // Handle OTP verification flow
-      }
-
-      // Return the actual error message for other cases
-      throw data || { message: "Unknown server error" };
-    }
-
-    // Handle network or unknown errors
-    throw { message: "Network error" };
-  }
-};
-
 // Send OTP to users via email
 export const sendVerifyOtp = async (email) => {
   try {

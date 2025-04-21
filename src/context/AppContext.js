@@ -19,30 +19,30 @@ export const AppContextProvider = ({ children }) => {
       try {
         const accessToken = await AsyncStorage.getItem("accessToken");
         if (!accessToken) {
-          console.log("No access token found. Logging out.");
-          logoutUser();
+          console.log("No access token found. Skipping fetch.");
+          setLoading(false);
           return;
         }
-
+  
         const response = await fetchWithAuth("https://0ggse9qpsj.execute-api.ap-southeast-1.amazonaws.com/prod/is-auth");
         if (!response.ok) throw new Error("Not authenticated");
-
+  
         const user = await getUserData();
         if (user) {
           setUserData(user);
-          console.log("Set user data:", user);
           setIsLoggedin(true);
+          console.log("Set user data:", user);
         } else {
           console.error("Failed to fetch user data");
         }
       } catch (error) {
         console.error("Auth check failed:", error);
-        logoutUser();
+        await logoutUser();
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchAuthState();
   }, []);
 
@@ -65,44 +65,62 @@ export const AppContextProvider = ({ children }) => {
   // Login user
   const loginUser = async (email, password) => {
     try {
-      const response = await axios.post(
-        "https://fqpoqnrwzi.execute-api.ap-southeast-1.amazonaws.com/prod/login",
-        { email, password }
-      );
-
-      console.log("Login Response:", response.data);
-
-      if (!response.data.accessToken) {
-        Alert.alert("Login Failed", response.data.message);
-        return;
+      const response = await fetch("https://fqpoqnrwzi.execute-api.ap-southeast-1.amazonaws.com/prod/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+  
+      const data = await response.json();
+      console.log("Login Response:", data);
+  
+      if (data.requiresVerification) {
+        Alert.alert("Account is not yet verified. Please verify your account in Qroom App");
+        return false;
       }
-
-      // Store tokens in AsyncStorage
-      await AsyncStorage.setItem("accessToken", response.data.accessToken);
-      await AsyncStorage.setItem("refreshToken", response.data.refreshToken);
+  
+      if (!data.accessToken) {
+        Alert.alert("Login Failed", data.message);
+        return false;
+      }
+  
+      await AsyncStorage.setItem("accessToken", data.accessToken);
+      await AsyncStorage.setItem("refreshToken", data.refreshToken);
       setIsLoggedin(true);
-
+  
       const user = await getUserData();
       if (user) {
         setUserData(user);
-        console.log("User data set after login:", user);
-        navigation.replace("Home"); // Redirect after login
+        return true;
       } else {
         Alert.alert("Error", "Failed to fetch user details. Please try again.");
+        return false;
       }
     } catch (error) {
       console.error("Login error:", error);
       Alert.alert("Error", error.message || "Something went wrong.");
+      return false;
     }
   };
 
-  // Logout user
   const logoutUser = async () => {
-    await AsyncStorage.removeItem("accessToken");
-    await AsyncStorage.removeItem("refreshToken");
-    setIsLoggedin(false);
-    setUserData(null);
-    navigation.replace("Login");
+    try {
+      const response = await fetchWithAuth("https://rz8fq4olpi.execute-api.ap-southeast-1.amazonaws.com/prod/logout", {
+        method: "POST",
+      });
+
+      await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
+      setIsLoggedin(false);
+      setUserData(null);
+
+      navigation.navigate("Login");
+      console.log("Logout successful");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      Alert.alert("Error", "Failed to logout. Please try again.");
+    }
   };
 
   // Refresh token function
@@ -111,18 +129,23 @@ export const AppContextProvider = ({ children }) => {
       const refreshToken = await AsyncStorage.getItem("refreshToken");
       if (!refreshToken) throw new Error("No refresh token available");
 
-      const refreshResponse = await axios.post(
-        "https://qw7fjs2n79.execute-api.ap-southeast-1.amazonaws.com/prod/refresh-token",
-        { refreshToken }
-      );
+      const response = await fetch("https://qw7fjs2n79.execute-api.ap-southeast-1.amazonaws.com/prod/refresh-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
 
-      if (!refreshResponse.data.accessToken) {
-        console.error("Failed to refresh token");
+      const data = await response.json();
+
+      if (!response.ok || !data.accessToken) {
+        console.error("Failed to refresh token:", data.message || "Unknown error");
         return null;
       }
 
-      await AsyncStorage.setItem("accessToken", refreshResponse.data.accessToken);
-      return refreshResponse.data.accessToken;
+      await AsyncStorage.setItem("accessToken", data.accessToken);
+      return data.accessToken;
     } catch (error) {
       console.error("Error refreshing token:", error);
       return null;

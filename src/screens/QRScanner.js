@@ -27,6 +27,7 @@ export default function QRScanner() {
           body: JSON.stringify({ checkInJwt }),
         }
       );
+      console.log("Function ran");
   
       const data = await response.json();
   

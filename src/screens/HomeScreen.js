@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   SafeAreaView,
 } from "react-native-safe-area-context";
@@ -15,11 +15,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchUserBookings } from "../api/authService";
 import { Ionicons } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
+import { AppContext } from "../context/AppContext";
 
 const HomeScreen = ({ navigation }) => {
   const [booking, setBooking] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasPermission, setHasPermission] = useState(null);
+
+  const {logoutUser} = useContext(AppContext);
 
   useEffect(() => {
     fetchBookings();
@@ -53,13 +56,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem("accessToken");
-      await AsyncStorage.removeItem("refreshToken");
-      navigation.replace("Login");
-    } catch (error) {
-      Alert.alert("Error", "Failed to logout. Please try again.");
-    }
+    logoutUser(navigation);
   };
 
   return (

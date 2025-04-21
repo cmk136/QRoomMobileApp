@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -18,8 +18,8 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { loginUser } from "../api/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppContext } from "../context/AppContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -29,6 +29,8 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const {loginUser} = useContext(AppContext); 
 
   const blobs = [
     { cx: useSharedValue(width * 0.3), cy: useSharedValue(height * 0.2), r: useSharedValue(90), fill: "#c1c1c1", opacity: 0.3, dx: width * 0.35, dy: height * 0.25, dr: 110, dur: 8000 },
@@ -79,9 +81,7 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      if (response.accessToken) {
-        await AsyncStorage.setItem("accessToken", response.accessToken);
-        await AsyncStorage.setItem("refreshToken", response.refreshToken);
+      if (response) {
         navigation.replace("Dashboard");
       } else {
         Alert.alert("Login Failed", response.message || "Invalid credentials");
