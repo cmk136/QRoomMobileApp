@@ -8,10 +8,12 @@ import BiometricScreen from "../screens/BiometricScreen";
 import BioCheckAuth from "../screens/BioCheckAuth";
 import OtpCheckAuth from "../screens/OtpCheckAuth";
 import CheckInAuth from "../screens/CheckInAuth";
+import TimeSlotScreen from "../screens/TimeSlotScreen";
 
 import DashboardTabs from "./DashboardTabs";
 import QRScanner from "../screens/QRScanner";
 import DevicesScreen from "../screens/DevicesScreen";
+import ConfirmBookingScreen from "../screens/ConfirmBookingScreen";
 
 const Stack = createStackNavigator();
 
@@ -25,6 +27,8 @@ const AppNavigator = () => {
       <Stack.Screen name="BioCheckAuth" component={BioCheckAuth} />
       <Stack.Screen name="OtpCheckAuth" component={OtpCheckAuth} />
       <Stack.Screen name="CheckInAuth" component={CheckInAuth} />
+      <Stack.Screen name="TimeSlotScreen" component={TimeSlotScreen} />
+      <Stack.Screen name="ConfirmBookingScreen" component={ConfirmBookingScreen} />
 
       {/* Main tabs */}
       <Stack.Screen name="Dashboard" component={DashboardTabs} />
