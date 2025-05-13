@@ -18,25 +18,18 @@ export const AppContextProvider = ({ children }) => {
         const accessToken = await AsyncStorage.getItem("accessToken");
 
         if (!accessToken || accessToken === "null") {
-          console.log("No valid access token. User is not logged in.");
+          console.log("No valid access token. Skipping user check.");
           setLoading(false);
           return;
         }
 
-        const response = await fetchWithAuth("https://0ggse9qpsj.execute-api.ap-southeast-1.amazonaws.com/prod/is-auth");
-        if (!response.ok) throw new Error("Not authenticated");
+        const user = await getUserData(); // Only call if token is present
+        if (!user) throw new Error("User not found");
 
-        const user = await getUserData();
-        if (user) {
-          setUserData(user);
-          setIsLoggedin(true);
-          console.log("Set user data:", user);
-        } else {
-          console.error("Failed to fetch user data");
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        await hardLogout(); // logout without calling logout endpoint
+        setUserData(user);
+        setIsLoggedin(true);
+      } catch (err) {
+        await hardLogout(); // clean up any bad session
       } finally {
         setLoading(false);
       }
@@ -60,7 +53,7 @@ export const AppContextProvider = ({ children }) => {
     }
   };
 
-  const loginUser = async (email, password) => {
+  const loginUser = async (email, password, navigation) => {
     try {
       const response = await fetch("https://fqpoqnrwzi.execute-api.ap-southeast-1.amazonaws.com/prod/login", {
         method: "POST",
@@ -72,8 +65,8 @@ export const AppContextProvider = ({ children }) => {
       console.log("Login Response:", data);
 
       if (data.requiresVerification) {
-        Alert.alert("Account is not yet verified. Please verify your account in Qroom App");
-        return false;
+        navigation.replace("OtpVerification", { email });
+        return data;
       }
 
       if (!data.accessToken) {
@@ -83,6 +76,7 @@ export const AppContextProvider = ({ children }) => {
 
       await AsyncStorage.setItem("accessToken", data.accessToken);
       await AsyncStorage.setItem("refreshToken", data.refreshToken);
+      await AsyncStorage.setItem("userEmail", email);
       setIsLoggedin(true);
 
       const user = await getUserData();

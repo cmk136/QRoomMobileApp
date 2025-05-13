@@ -8,12 +8,8 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
-import {
-  sendVerifyOtp,
-  verifyOtp,
-  verifyDeviceOtp,
-  sendDeviceVerifyOtp,
-} from "../api/authService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 
 const OtpScreen = ({ navigation, route }) => {
   const { email, from } = route.params;
@@ -22,27 +18,81 @@ const OtpScreen = ({ navigation, route }) => {
   const [initialOtp, setInitialOtp] = useState(false);
   const [resending, setResending] = useState(false);
 
+  const sendVerifyOtp = async (email) => {
+    const response = await fetch("https://8vsanyv1b3.execute-api.ap-southeast-1.amazonaws.com/prod/sendVerifyOtp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    return data;
+  };
+
+  const sendDeviceVerifyOtp = async () => {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    if (!accessToken) throw new Error("No access token found.");
+
+    const response = await fetch("https://nwndykuo0a.execute-api.ap-southeast-1.amazonaws.com/prod/deviceSendVerifyOtp", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    return data;
+  };
+
+  const verifyOtp = async (email, otp) => {
+    const response = await fetch("https://2dj1t5cuhd.execute-api.ap-southeast-1.amazonaws.com/prod/verifyOtp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    return data;
+  };
+
+  const verifyDeviceOtp = async (otp) => {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    if (!accessToken) throw new Error("No access token found.");
+
+    const response = await fetch("https://pok91tugyk.execute-api.ap-southeast-1.amazonaws.com/prod/verifyOtpDevice", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ otp }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+    return data;
+  };
+
   const sendOtp = async () => {
     setResending(true);
     try {
       const isDeviceFlow = from === "AddDevice";
-      let response;
-
-      if (isDeviceFlow) {
-        response = await sendDeviceVerifyOtp();
-      } else {
-        response = await sendVerifyOtp(email);
-      }
-
-      Alert.alert("OTP Sent", response.message);
+      const result = isDeviceFlow ? await sendDeviceVerifyOtp() : await sendVerifyOtp(email);
+      Alert.alert("OTP Sent", result.message);
     } catch (error) {
-      Alert.alert("Error sending OTP", error.message || "Failed to send OTP.");
+      console.error("Error sending OTP:", error);
+      const message = error.message?.includes("Internal server error")
+        ? "Unable to send OTP. Please try again later."
+        : error.message || "Failed to send OTP.";
+      Alert.alert("Error", message);
     }
     setResending(false);
   };
 
   useEffect(() => {
-    if (!initialOtp) {
+    if (from === "AddDevice" && !initialOtp) {
       sendOtp();
       setInitialOtp(true);
     }
@@ -56,23 +106,14 @@ const OtpScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      let response;
       const isDeviceFlow = from === "AddDevice";
+      const response = isDeviceFlow
+        ? await verifyDeviceOtp(otp)
+        : await verifyOtp(email, otp);
 
-      if (isDeviceFlow) {
-        response = await verifyDeviceOtp(otp);
-      } else {
-        response = await verifyOtp(email, otp);
-      }
-
-      if (response.message && response.message.includes("verified successfully")) {
+      if (response.message?.includes("verified successfully")) {
         Alert.alert("Success", "OTP Verified Successfully!");
-
-        if (isDeviceFlow) {
-          navigation.replace("BiometricScreen", { email });
-        } else {
-          navigation.replace("PasswordChange", { email });
-        }
+        navigation.replace(isDeviceFlow ? "BiometricScreen" : "PasswordChange", { email });
       } else {
         Alert.alert("OTP Verification Failed", response.message || "Invalid OTP.");
       }
@@ -80,14 +121,26 @@ const OtpScreen = ({ navigation, route }) => {
       console.error("OTP Verification Error:", error);
       Alert.alert("Error", error.message || "Something went wrong.");
     }
-
     setLoading(false);
+  };
+
+  const handleBack = () => {
+    navigation.replace(from === "AddDevice" ? "Devices" : "Login");
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Enter OTP</Text>
-      <Text style={styles.subtitle}>An OTP has been sent to {email}</Text>
+      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <Ionicons name="arrow-back" size={24} color="#1c1c1d" />
+        <Text style={styles.backText}>Cancel</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.title}>Verify OTP</Text>
+      <Text style={styles.subtitle}>
+        We've sent a 6-digit code to:
+        {"\n"}
+        <Text style={styles.email}>{email}</Text>
+      </Text>
 
       <TextInput
         style={styles.input}
@@ -98,28 +151,12 @@ const OtpScreen = ({ navigation, route }) => {
         maxLength={6}
       />
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleVerifyOtp}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Verify OTP</Text>
-        )}
+      <TouchableOpacity style={styles.button} onPress={handleVerifyOtp} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify OTP</Text>}
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.resendButton}
-        onPress={sendOtp}
-        disabled={resending}
-      >
-        {resending ? (
-          <ActivityIndicator color="#007bff" />
-        ) : (
-          <Text style={styles.resendText}>Resend OTP</Text>
-        )}
+      <TouchableOpacity style={styles.resendButton} onPress={sendOtp} disabled={resending}>
+        {resending ? <ActivityIndicator color="#007bff" /> : <Text style={styles.resendText}>Resend OTP</Text>}
       </TouchableOpacity>
     </View>
   );
@@ -131,19 +168,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
     padding: 20,
+    backgroundColor: "#f5f5f5",
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backText: {
+    fontSize: 16,
+    color: "#1c1c1d",
+    marginLeft: 6,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 10,
+    textAlign: "center",
+    color: "#1c1c1d",
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: "#555",
+    textAlign: "center",
     marginBottom: 20,
+  },
+  email: {
+    fontWeight: "600",
+    color: "#1c1c1d",
   },
   input: {
     width: "100%",
@@ -172,6 +227,7 @@ const styles = StyleSheet.create({
   },
   resendButton: {
     marginTop: 10,
+    alignSelf: "center",
   },
   resendText: {
     color: "#007bff",

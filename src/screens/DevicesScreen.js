@@ -20,6 +20,8 @@ const DevicesScreen = ({ navigation }) => {
   const { fetchWithAuth } = useContext(AppContext);
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState(null);
+
 
   const loadDevices = async () => {
     try {
@@ -36,7 +38,18 @@ const DevicesScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadDevices();
+    getEmailFromStorage();
   }, []);
+
+  const getEmailFromStorage = async () => {
+    try {
+      const storedEmail = await AsyncStorage.getItem("userEmail");
+      console.log("📧 Stored user email:", storedEmail);
+      setUserEmail(storedEmail);
+    } catch (error) {
+      console.error("Failed to load email from storage:", error);
+    }
+  };
 
   const handleAddDevice = async () => {
     try {
@@ -51,7 +64,7 @@ const DevicesScreen = ({ navigation }) => {
       const accessToken = await AsyncStorage.getItem("accessToken");
       if (!accessToken) throw new Error("User not authenticated.");
   
-      const email = await AsyncStorage.getItem("userEmail");
+      const email = userEmail;
       if (!email) {
         Alert.alert("Error", "Email not found. Cannot continue.");
         return;

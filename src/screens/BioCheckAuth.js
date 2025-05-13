@@ -4,6 +4,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppContext } from "../context/AppContext";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function BioCheckAuth() {
   const { fetchWithAuth } = useContext(AppContext);
@@ -17,28 +18,26 @@ export default function BioCheckAuth() {
   const bookingId = route?.params?.bookingId || null;
 
   useEffect(() => {
-    const getStoredDeviceId = async () => {
+    const init = async () => {
       const deviceId = await AsyncStorage.getItem("registeredDeviceId");
       setStoredDeviceId(deviceId);
       console.log("Stored Device ID for Verification:", deviceId);
-    };
 
-    getStoredDeviceId();
+      await handleBiometricAuth(); // trigger on mount
+    };
+    init();
   }, []);
 
   const unlockRoom = async () => {
     try {
       const response = await fetchWithAuth(
-        "https://c66lw5x49g.execute-api.ap-southeast-1.amazonaws.com/prod/setIsUnlocked", 
+        "https://c66lw5x49g.execute-api.ap-southeast-1.amazonaws.com/prod/setIsUnlocked",
         {
           method: "POST",
           body: JSON.stringify({ bookingId }),
         }
       );
-
       const data = await response.json();
-      console.log("Unlock Room Response:", data);
-
       if (data.success) {
         Alert.alert("Room Unlocked", "Access granted.");
         navigation.replace("CheckInAuth", { level, bookingId });
@@ -54,24 +53,21 @@ export default function BioCheckAuth() {
   const sendBookingOTP = async () => {
     try {
       const response = await fetchWithAuth(
-        "https://yyx5yuebgi.execute-api.ap-southeast-1.amazonaws.com/prod/sendBookingOtp", 
+        "https://yyx5yuebgi.execute-api.ap-southeast-1.amazonaws.com/prod/sendBookingOtp",
         {
           method: "POST",
           body: JSON.stringify({ bookingId }),
         }
       );
-
       const data = await response.json();
-      console.log("Unlock Room Response:", data);
-
       if (data.success) {
         navigation.replace("OtpCheckAuth", { bookingId, level });
       } else {
-        Alert.alert("OTP could not be sent.");
+        Alert.alert("Failed", "OTP could not be sent.");
       }
     } catch (error) {
-      console.error("Unlock error:", error);
-      Alert.alert("Error", "An error occurred while unlocking the room.");
+      console.error("OTP error:", error);
+      Alert.alert("Error", "An error occurred while sending the OTP.");
     }
   };
 
@@ -85,8 +81,6 @@ export default function BioCheckAuth() {
         return;
       }
 
-      console.log("Verifying Device ID:", storedDeviceId);
-
       const response = await fetchWithAuth(
         "https://tk03adtmuc.execute-api.ap-southeast-1.amazonaws.com/prod/verifyDeviceId",
         {
@@ -99,15 +93,13 @@ export default function BioCheckAuth() {
       console.log("Server Response:", data);
 
       if (data.success) {
-        Alert.alert("Verification Successful", "Device verified successfully.");
-
         if (level === 2 && bookingId) {
           await unlockRoom();
-        } if (level === 3 && bookingId) {
+        } else if (level === 3 && bookingId) {
           await sendBookingOTP();
         } else {
-          Alert.alert("Invalid Security Level.")
-        }        
+          Alert.alert("Invalid Security Level");
+        }
       } else {
         Alert.alert("Verification Failed", data.message || "Invalid device.");
       }
@@ -120,22 +112,36 @@ export default function BioCheckAuth() {
   };
 
   const handleBiometricAuth = async () => {
-    const biometricAuth = await LocalAuthentication.authenticateAsync({
-      promptMessage: "Authenticate to continue",
-    });
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Authenticate to continue",
+        cancelLabel: "Cancel",
+      });
 
-    if (biometricAuth.success) {
-      verifyUserDevice();
-    } else {
-      Alert.alert("Authentication Failed", "Please try again.");
+      if (result.success) {
+        await verifyUserDevice();
+      } else {
+        Alert.alert("Authentication Cancelled", "You cancelled the biometric prompt.");
+      }
+    } catch (error) {
+      console.error("Biometric Auth Error:", error);
+      Alert.alert("Error", "An error occurred during biometric authentication.");
     }
   };
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+      >
+        <Ionicons name="arrow-back-outline" size={24} color="#1c1c1d" />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+
       <Text style={styles.title}>Biometric Authentication</Text>
       <Text style={styles.message}>
-        Please authenticate your identity using biometrics. This ensures that your identity matches the room booking.
+        Please authenticate your identity using biometrics to continue with the booking process.
       </Text>
 
       <TouchableOpacity
@@ -154,10 +160,10 @@ export default function BioCheckAuth() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#f5f5f5",
     padding: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 24,
@@ -168,6 +174,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     marginBottom: 20,
+    paddingHorizontal: 10,
   },
   authButton: {
     backgroundColor: "#007bff",
@@ -182,5 +189,18 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: "#b0b0b0",
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backText: {
+    marginLeft: 6,
+    fontSize: 16,
+    color: "#1c1c1d",
+    fontWeight: "500",
   },
 });

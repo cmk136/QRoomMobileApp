@@ -1,9 +1,15 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from "react-native";
-import { changeInitialPassword } from "../api/authService";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from "react-native";
 
 const ChangePasswordScreen = ({ navigation, route }) => {
-  const { email } = route.params; // Get email from route params
+  const { email } = route.params;
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [criteria, setCriteria] = useState({
@@ -26,10 +32,7 @@ const ChangePasswordScreen = ({ navigation, route }) => {
 
   const handlePasswordChange = async () => {
     if (!Object.values(criteria).every(Boolean)) {
-      Alert.alert(
-        "Error",
-        "Password does not meet all security requirements."
-      );
+      Alert.alert("Error", "Password does not meet all security requirements.");
       return;
     }
 
@@ -39,13 +42,20 @@ const ChangePasswordScreen = ({ navigation, route }) => {
     }
 
     try {
-      const response = await changeInitialPassword(email, newPassword);
-      if (response.success) {
-        Alert.alert("Success", "Password changed successfully!");
-        navigation.replace("BiometricScreen", { email }); // Navigate to biometric setup
-      } else {
-        Alert.alert("Error", response.message);
+      const response = await fetch("https://n1mmmualre.execute-api.ap-southeast-1.amazonaws.com/prod/changeInitialPasswordAPI", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to change password.");
       }
+
+      Alert.alert("Success", "Password changed successfully!");
+      navigation.replace("Login");
     } catch (error) {
       Alert.alert("Error", error.message || "Something went wrong.");
     }
@@ -92,10 +102,7 @@ const ChangePasswordScreen = ({ navigation, route }) => {
         secureTextEntry
       />
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handlePasswordChange}
-      >
+      <TouchableOpacity style={styles.button} onPress={handlePasswordChange}>
         <Text style={styles.buttonText}>Update Password</Text>
       </TouchableOpacity>
     </View>
@@ -105,12 +112,52 @@ const ChangePasswordScreen = ({ navigation, route }) => {
 export default ChangePasswordScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f5f5f5", padding: 20 },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
-  input: { width: "100%", height: 50, backgroundColor: "white", borderRadius: 10, paddingHorizontal: 15, marginBottom: 15, borderWidth: 1, borderColor: "#ccc" },
-  criteriaContainer: { alignSelf: "flex-start", marginLeft: 20, marginBottom: 15 },
-  validCriteria: { color: "green", fontSize: 14 },
-  invalidCriteria: { color: "red", fontSize: 14 },
-  button: { width: "100%", height: 50, backgroundColor: "#007bff", justifyContent: "center", alignItems: "center", borderRadius: 10 },
-  buttonText: { color: "white", fontSize: 18, fontWeight: "bold" },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  input: {
+    width: "100%",
+    height: 50,
+    backgroundColor: "white",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  criteriaContainer: {
+    alignSelf: "flex-start",
+    marginLeft: 20,
+    marginBottom: 15,
+  },
+  validCriteria: {
+    color: "green",
+    fontSize: 14,
+  },
+  invalidCriteria: {
+    color: "red",
+    fontSize: 14,
+  },
+  button: {
+    width: "100%",
+    height: 50,
+    backgroundColor: "#007bff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
 });

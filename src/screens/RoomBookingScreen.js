@@ -11,11 +11,13 @@ import {
   Dimensions,
   Platform,
   StatusBar,
+  Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Modal from "react-native-modal";
 import { AppContext } from "../context/AppContext";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
 const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const { width } = Dimensions.get("window");
@@ -31,10 +33,11 @@ export default function RoomBookingScreen() {
 
   useEffect(() => {
     const today = new Date();
+    const todayISO = today.toISOString().split("T")[0];
     const weekDates = [];
 
     for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
+      const date = new Date();
       date.setDate(today.getDate() + i);
       const label = `${date.getDate()} ${date.toLocaleString("default", {
         month: "short",
@@ -44,14 +47,12 @@ export default function RoomBookingScreen() {
     }
 
     setDateOptions(weekDates);
-    setSelectedDate(weekDates[0]?.value);
+    setSelectedDate(todayISO);
   }, []);
 
   useEffect(() => {
-    if (selectedDate) {
-      fetchRoomsByDate();
-    }
-  }, [selectedDate]);
+    fetchRoomsByDate();
+  }, []);
 
   const fetchRoomsByDate = async () => {
     try {
@@ -77,6 +78,19 @@ export default function RoomBookingScreen() {
     setSelectedRoom(null);
   };
 
+  const showInfoAlert = () => {
+    Alert.alert("How to Use", "Select a date from the dropdown menu and tap 'Search' to view and book available rooms on that day.");
+  };
+
+  const handleSearch = () => {
+    const todayISO = new Date().toISOString().split("T")[0];
+    if (selectedDate < todayISO) {
+      Alert.alert("Invalid Date", "You can only search for bookings from today onward.");
+      return;
+    }
+    navigation.navigate("TimeSlotScreen", { date: selectedDate });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -99,10 +113,11 @@ export default function RoomBookingScreen() {
             </Picker>
           </View>
 
-          <TouchableOpacity
-            style={styles.searchButton}
-            onPress={() => navigation.navigate("TimeSlotScreen", { date: selectedDate })}
-          >
+          <TouchableOpacity onPress={showInfoAlert} style={styles.infoIcon}>
+            <Ionicons name="information-circle-outline" size={24} color="#1c1c1d" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
             <Text style={styles.searchText}>Search</Text>
           </TouchableOpacity>
         </View>
@@ -187,6 +202,11 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: "100%",
+  },
+  infoIcon: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
   },
   searchButton: {
     backgroundColor: "#1c1c1d",

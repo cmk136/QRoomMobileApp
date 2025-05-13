@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useContext} from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Device from "expo-device";
-import { registerDevice, addUserDevice } from "../api/authService";
 import { AppContext } from "../context/AppContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const BiometricScreen = ({ navigation, route }) => {
   const { fetchWithAuth } = useContext(AppContext);
@@ -39,77 +39,129 @@ const BiometricScreen = ({ navigation, route }) => {
     fetchDeviceDetails();
   }, []);
 
+  const handleBack = () => {
+    if (isDeviceFlow) {
+      navigation.replace("Devices");
+    } else {
+      navigation.replace("Login");
+    }
+  };
+
+  const fetchUserDevices = async () => {
+    try {
+      const response = await fetchWithAuth(
+        "https://07e2pbmve3.execute-api.ap-southeast-1.amazonaws.com/prod/fetchDevices"
+      );
+      const data = await response.json();
+      return data.devices || [];
+    } catch (error) {
+      throw new Error("Failed to fetch registered devices.");
+    }
+  };
+
+  const registerDevice = async (email, deviceId, deviceName) => {
+    try {
+      const response = await fetch(
+        "https://43eextcx60.execute-api.ap-southeast-1.amazonaws.com/prod/registerDevice",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, deviceId, deviceName }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Device registration failed.");
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const addUserDevice = async (deviceId, deviceName) => {
+    try {
+      const accessToken = await AsyncStorage.getItem("accessToken");
+      if (!accessToken) throw new Error("No access token found.");
+
+      const response = await fetch(
+        "https://h5pu37tklb.execute-api.ap-southeast-1.amazonaws.com/prod/addDevice",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ deviceId, deviceName }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "Failed to add device.");
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const authenticateWithBiometrics = async () => {
     try {
       if (!email && !isDeviceFlow) {
         Alert.alert("Error", "Email is missing. Cannot proceed.");
         return;
       }
-  
+
       const isBiometricAvailable = await LocalAuthentication.hasHardwareAsync();
       if (!isBiometricAvailable) {
         Alert.alert("Error", "Biometric authentication is not available on this device.");
         return;
       }
-  
+
       const biometricRecords = await LocalAuthentication.isEnrolledAsync();
       if (!biometricRecords) {
         Alert.alert("Error", "No biometric records found. Please set up Face ID or Fingerprint.");
         return;
       }
-  
+
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: "Authenticate to proceed",
         fallbackLabel: "Use passcode instead",
         cancelLabel: "Cancel",
       });
-  
+
       if (result.success) {
         Alert.alert("Success", "Biometric Authentication Enabled!");
-  
-        console.log("Email:", email);
-        console.log("Device ID:", deviceId);
-        console.log("Device Name:", deviceName);
-  
+
         if (deviceId && deviceName) {
           try {
-            // 🔍 Fetch existing devices
-            const response = await fetchWithAuth("https://07e2pbmve3.execute-api.ap-southeast-1.amazonaws.com/prod/fetchDevices");
-            const data = await response.json();
-            const existingDevices = data.devices || [];
-  
-            console.log("Fetched Devices from Server:", existingDevices);
-            console.log("Checking for existing deviceId:", deviceId);
-  
-            const isDuplicate = existingDevices.some((device) => {
-              const match = String(device.deviceId).trim() === String(deviceId).trim();
-              console.log(`Compare: '${device.deviceId}' === '${deviceId}' => ${match}`);
-              return match;
-            });
-  
+            const devices = await fetchUserDevices();
+            const isDuplicate = devices.some(
+              (device) =>
+                String(device.deviceId).trim() === String(deviceId).trim()
+            );
+
             if (isDuplicate) {
-              Alert.alert("Device Already Registered", "This device is already registered to your account.");
+              Alert.alert("Device Already Registered", "This device is already registered.");
               return;
             }
-  
-            let registerResponse;
-  
+
             if (isDeviceFlow) {
-              registerResponse = await addUserDevice(deviceId, deviceName);
+              await addUserDevice(deviceId, deviceName);
             } else {
-              registerResponse = await registerDevice(email, deviceId, deviceName);
+              await registerDevice(email, deviceId, deviceName);
             }
-  
-            console.log("Device Registered Successfully:", registerResponse);
+
+            console.log("Device registered successfully.");
           } catch (error) {
             console.error("Device Registration Error:", error);
             Alert.alert("Error", error.message || "Failed to register device.");
           }
-        } else {
-          console.warn("Device details not available yet.");
         }
-  
-        navigation.replace("Dashboard");
+
+        const token = await AsyncStorage.getItem("accessToken");
+        if (token) {
+          navigation.replace("Dashboard");
+        } else {
+          Alert.alert("Session Expired", "Please log in again.");
+          navigation.replace("Login");
+        }
       } else {
         Alert.alert("Biometric Authentication Failed", "Please try again.");
       }
@@ -118,11 +170,14 @@ const BiometricScreen = ({ navigation, route }) => {
       Alert.alert("Error", "An error occurred during authentication.");
     }
   };
-  
-  
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <Ionicons name="arrow-back" size={24} color="#1c1c1d" />
+        <Text style={styles.backText}>Cancel</Text>
+      </TouchableOpacity>
+
       <Text style={styles.title}>Enable Biometrics</Text>
       <TouchableOpacity style={styles.button} onPress={authenticateWithBiometrics}>
         <Text style={styles.buttonText}>Enable Biometrics</Text>
@@ -141,10 +196,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     padding: 20,
   },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backText: {
+    fontSize: 16,
+    color: "#1c1c1d",
+    marginLeft: 6,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
+    color: "#1c1c1d",
   },
   button: {
     width: "80%",
