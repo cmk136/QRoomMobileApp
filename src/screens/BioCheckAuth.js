@@ -74,18 +74,20 @@ export default function BioCheckAuth() {
   const verifyUserDevice = async () => {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
-
+  
     try {
-      if (!storedDeviceId) {
+      const deviceId = await AsyncStorage.getItem("registeredDeviceId");
+  
+      if (!deviceId) {
         Alert.alert("Error", "Device ID not found. Please try registering again.");
         return;
       }
-
+  
       const response = await fetchWithAuth(
         "https://tk03adtmuc.execute-api.ap-southeast-1.amazonaws.com/prod/verifyDeviceId",
         {
           method: "POST",
-          body: JSON.stringify({ bookingDeviceId: storedDeviceId }),
+          body: JSON.stringify({ bookingDeviceId: deviceId }),
         }
       );
 

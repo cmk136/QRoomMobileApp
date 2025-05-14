@@ -1,5 +1,13 @@
-import React, { useEffect, useState, useContext} from "react";
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import React, { useEffect, useRef, useState, useContext } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  Alert,
+  AppState,
+} from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { AppContext } from "../context/AppContext";
 
@@ -9,47 +17,95 @@ export default function OTPCheckIn() {
   const receivedBookingId = route.params?.bookingId || null;
 
   const { fetchWithAuth } = useContext(AppContext);
+  const [loading, setLoading] = useState(true);
+  const [attempts, setAttempts] = useState(0);
+  const MAX_ATTEMPTS = 10;
+  const appState = useRef(AppState.currentState);
+  const isChecking = useRef(false); // Prevent overlapping calls
 
-
-  
   const checkUnlockStatus = async () => {
-    let isUnlocked = false;
-    
-    while (!isUnlocked) {
-      try {
-        const response = await fetchWithAuth("https://dx3ki16cm6.execute-api.ap-southeast-1.amazonaws.com/prod/checkUnlock", {
-          method: "POST",
-          body: JSON.stringify({ bookingId : receivedBookingId }),
-        });
-  
-        const data = await response.json();
-        console.log(data);
-        if (data.success && data.isUnlocked) {
-          isUnlocked = true;
-          console.log("Room unlocked!");
-          // Navigate to success screen
-          navigation.replace("CheckInAuth");
-        }
-      } catch (error) {
-        console.error("Error checking unlock:", error);
-      }
+    if (isChecking.current) return; // Already checking
+    isChecking.current = true;
 
-      // Wait for 5 seconds before retrying
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+    try {
+      const response = await fetchWithAuth(
+        "https://dx3ki16cm6.execute-api.ap-southeast-1.amazonaws.com/prod/checkUnlock",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ bookingId: receivedBookingId }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Unlock check response:", data);
+
+      if (data.success && data.isUnlocked) {
+        console.log("Room unlocked, navigating to CheckInAuth...");
+        navigation.replace("CheckInAuth");
+      } else if (attempts < MAX_ATTEMPTS) {
+        setTimeout(() => {
+          setAttempts((prev) => prev + 1);
+          checkUnlockStatus();
+        }, 5000);
+      } else {
+        Alert.alert("Timeout", "Unable to verify unlock. Please try again.");
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error checking unlock:", error);
+      Alert.alert("Network Error", "Unable to connect to the server.");
+      setLoading(false);
+    } finally {
+      isChecking.current = false;
     }
-};
+  };
 
   useEffect(() => {
+    if (!receivedBookingId) {
+      Alert.alert("Missing Booking ID", "No booking ID found.");
+      navigation.replace("Dashboard");
+      return;
+    }
+
     checkUnlockStatus();
+
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("App resumed — checking unlock again.");
+        checkUnlockStatus();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Check Email for OTP.</Text>
-      <Text style={styles.subtitle}>
-        Key in OTP into the Kiosk Screen.
-      </Text>
-      <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.replace("Dashboard")}>
+      <Text style={styles.subtitle}>Key in OTP into the Kiosk Screen.</Text>
+
+      {loading && (
+        <View style={{ marginTop: 30 }}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text style={{ marginTop: 10, fontStyle: "italic", color: "#555" }}>
+            Waiting for unlock...
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={styles.cancelButton}
+        onPress={() => navigation.replace("Dashboard")}
+      >
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
     </View>
@@ -73,24 +129,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     color: "#555",
-    marginBottom: 20,
-  },
-  otpContainer: {
-    backgroundColor: "black",
-    padding: 20,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  otpText: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "white",
-    textAlign: "center",
-  },
-  expiryText: {
-    fontSize: 16,
-    color: "red",
-    fontWeight: "bold",
     marginBottom: 20,
   },
   cancelButton: {

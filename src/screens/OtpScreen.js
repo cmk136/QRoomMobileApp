@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   StyleSheet,
+  AppState,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +18,8 @@ const OtpScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [initialOtp, setInitialOtp] = useState(false);
   const [resending, setResending] = useState(false);
+  const appState = useRef(AppState.currentState);
+  const isResuming = useRef(false);
 
   const sendVerifyOtp = async (email) => {
     const response = await fetch("https://8vsanyv1b3.execute-api.ap-southeast-1.amazonaws.com/prod/sendVerifyOtp", {
@@ -44,6 +47,22 @@ const OtpScreen = ({ navigation, route }) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.message);
     return data;
+  };
+
+  const sendOtp = async () => {
+    setResending(true);
+    try {
+      const isDeviceFlow = from === "AddDevice";
+      const result = isDeviceFlow ? await sendDeviceVerifyOtp() : await sendVerifyOtp(email);
+      Alert.alert("OTP Sent", result.message);
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      const message = error.message?.includes("Internal server error")
+        ? "Unable to send OTP. Please try again later."
+        : error.message || "Failed to send OTP.";
+      Alert.alert("Error", message);
+    }
+    setResending(false);
   };
 
   const verifyOtp = async (email, otp) => {
@@ -75,29 +94,6 @@ const OtpScreen = ({ navigation, route }) => {
     return data;
   };
 
-  const sendOtp = async () => {
-    setResending(true);
-    try {
-      const isDeviceFlow = from === "AddDevice";
-      const result = isDeviceFlow ? await sendDeviceVerifyOtp() : await sendVerifyOtp(email);
-      Alert.alert("OTP Sent", result.message);
-    } catch (error) {
-      console.error("Error sending OTP:", error);
-      const message = error.message?.includes("Internal server error")
-        ? "Unable to send OTP. Please try again later."
-        : error.message || "Failed to send OTP.";
-      Alert.alert("Error", message);
-    }
-    setResending(false);
-  };
-
-  useEffect(() => {
-    if (from === "AddDevice" && !initialOtp) {
-      sendOtp();
-      setInitialOtp(true);
-    }
-  }, [initialOtp]);
-
   const handleVerifyOtp = async () => {
     if (!otp) {
       Alert.alert("Error", "Please enter the OTP.");
@@ -127,6 +123,31 @@ const OtpScreen = ({ navigation, route }) => {
   const handleBack = () => {
     navigation.replace(from === "AddDevice" ? "Devices" : "Login");
   };
+
+  useEffect(() => {
+    if (from === "AddDevice" && !initialOtp) {
+      sendOtp();
+      setInitialOtp(true);
+    }
+
+    const subscription = AppState.addEventListener("change", nextAppState => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("App resumed, resending OTP...");
+        if (from === "AddDevice" && !resending && !isResuming.current) {
+          isResuming.current = true;
+          sendOtp().finally(() => {
+            isResuming.current = false;
+          });
+        }
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => subscription.remove();
+  }, [initialOtp]);
 
   return (
     <View style={styles.container}>
