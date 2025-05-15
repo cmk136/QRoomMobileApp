@@ -63,18 +63,27 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
+      console.log("Attempting login with:", { email });
+
       const response = await loginUser(email, password, navigation);
+
       if (response?.requiresVerification) {
         navigation.replace("OtpVerification", { email });
         return;
       }
 
       if (response) {
-        navigation.replace("Dashboard");
+        console.log("✅ Login succeeded, redirecting to dashboard...");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        });
       } else {
-        Alert.alert("Login Failed", response.message || "Invalid credentials");
+        console.warn("⚠️ Login failed:", response?.message);
+        Alert.alert("Login Failed", response?.message || "Invalid credentials");
       }
     } catch (error) {
+      console.error("❌ Login Error:", error);
       Alert.alert("Login Error", error.message || "Something went wrong.");
     }
 
@@ -118,7 +127,11 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
+        <TouchableOpacity
+          style={[styles.button, (loading || !email || !password) && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading || !email || !password}
+        >
           {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Login</Text>}
         </TouchableOpacity>
       </View>

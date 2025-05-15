@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   AppState,
+  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,8 +17,9 @@ const OtpScreen = ({ navigation, route }) => {
   const { email, from } = route.params;
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [initialOtp, setInitialOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [resending, setResending] = useState(false);
+
   const appState = useRef(AppState.currentState);
   const isResuming = useRef(false);
 
@@ -39,7 +41,7 @@ const OtpScreen = ({ navigation, route }) => {
     const response = await fetch("https://nwndykuo0a.execute-api.ap-southeast-1.amazonaws.com/prod/deviceSendVerifyOtp", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({}),
@@ -50,19 +52,25 @@ const OtpScreen = ({ navigation, route }) => {
   };
 
   const sendOtp = async () => {
+    if (resending) return;
     setResending(true);
     try {
       const isDeviceFlow = from === "AddDevice";
-      const result = isDeviceFlow ? await sendDeviceVerifyOtp() : await sendVerifyOtp(email);
-      Alert.alert("OTP Sent", result.message);
+      const result = isDeviceFlow
+        ? await sendDeviceVerifyOtp()
+        : await sendVerifyOtp(email);
+
+      setOtpSent(true);
+      if (Platform.OS !== "web") Alert.alert("OTP Sent", result.message);
     } catch (error) {
       console.error("Error sending OTP:", error);
       const message = error.message?.includes("Internal server error")
         ? "Unable to send OTP. Please try again later."
         : error.message || "Failed to send OTP.";
-      Alert.alert("Error", message);
+      if (Platform.OS !== "web") Alert.alert("Error", message);
+    } finally {
+      setResending(false);
     }
-    setResending(false);
   };
 
   const verifyOtp = async (email, otp) => {
@@ -83,7 +91,7 @@ const OtpScreen = ({ navigation, route }) => {
     const response = await fetch("https://pok91tugyk.execute-api.ap-southeast-1.amazonaws.com/prod/verifyOtpDevice", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ otp }),
@@ -109,6 +117,12 @@ const OtpScreen = ({ navigation, route }) => {
 
       if (response.message?.includes("verified successfully")) {
         Alert.alert("Success", "OTP Verified Successfully!");
+
+        if (response.accessToken && response.refreshToken) {
+          await AsyncStorage.setItem("accessToken", response.accessToken);
+          await AsyncStorage.setItem("refreshToken", response.refreshToken);
+        }
+
         navigation.replace(isDeviceFlow ? "BiometricScreen" : "PasswordChange", { email });
       } else {
         Alert.alert("OTP Verification Failed", response.message || "Invalid OTP.");
@@ -125,29 +139,23 @@ const OtpScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    if (from === "AddDevice" && !initialOtp) {
-      sendOtp();
-      setInitialOtp(true);
-    }
-
     const subscription = AppState.addEventListener("change", nextAppState => {
       if (
         appState.current.match(/inactive|background/) &&
         nextAppState === "active"
       ) {
-        console.log("App resumed, resending OTP...");
-        if (from === "AddDevice" && !resending && !isResuming.current) {
-          isResuming.current = true;
-          sendOtp().finally(() => {
-            isResuming.current = false;
-          });
+        if (!resending && !isResuming.current) {
+          console.log("[Resume] OTP not resent on resume (user-triggered only)");
         }
       }
       appState.current = nextAppState;
     });
 
-    return () => subscription.remove();
-  }, [initialOtp]);
+    return () => {
+      subscription.remove();
+      console.log("[Cleanup] AppState listener removed");
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -158,7 +166,7 @@ const OtpScreen = ({ navigation, route }) => {
 
       <Text style={styles.title}>Verify OTP</Text>
       <Text style={styles.subtitle}>
-        We've sent a 6-digit code to:
+        Tap the button below to receive your OTP.
         {"\n"}
         <Text style={styles.email}>{email}</Text>
       </Text>
@@ -177,13 +185,14 @@ const OtpScreen = ({ navigation, route }) => {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.resendButton} onPress={sendOtp} disabled={resending}>
-        {resending ? <ActivityIndicator color="#007bff" /> : <Text style={styles.resendText}>Resend OTP</Text>}
+        {resending
+          ? <ActivityIndicator color="#007bff" />
+          : <Text style={styles.resendText}>{otpSent ? "Resend OTP" : "Send OTP"}</Text>}
       </TouchableOpacity>
     </View>
   );
 };
 
-export default OtpScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -255,3 +264,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+export default OtpScreen;

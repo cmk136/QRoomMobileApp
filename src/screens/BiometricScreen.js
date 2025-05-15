@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, Alert, StyleSheet, Platform } from "react-native";
 import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Device from "expo-device";
@@ -11,7 +11,9 @@ const BiometricScreen = ({ navigation, route }) => {
   const [deviceId, setDeviceId] = useState(null);
   const [deviceName, setDeviceName] = useState(null);
   const email = route?.params?.email || null;
-  const isDeviceFlow = route?.params?.from === "AddDevice";
+  const from = route?.params?.from || null;
+  const isDeviceFlow = from === "AddDevice";
+  const isSetupFlow = from === "AccountSetup";
 
   useEffect(() => {
     const fetchDeviceDetails = async () => {
@@ -55,7 +57,11 @@ const BiometricScreen = ({ navigation, route }) => {
       const data = await response.json();
       return data.devices || [];
     } catch (error) {
-      throw new Error("Failed to fetch registered devices.");
+      console.error("Device Registration Error:", error);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", "Failed to fetch registered devices.");
+      }
+      return [];
     }
   };
 
@@ -103,7 +109,7 @@ const BiometricScreen = ({ navigation, route }) => {
 
   const authenticateWithBiometrics = async () => {
     try {
-      if (!email && !isDeviceFlow) {
+      if (!email && !isDeviceFlow && !isSetupFlow) {
         Alert.alert("Error", "Email is missing. Cannot proceed.");
         return;
       }
@@ -126,45 +132,50 @@ const BiometricScreen = ({ navigation, route }) => {
         cancelLabel: "Cancel",
       });
 
-      if (result.success) {
-        Alert.alert("Success", "Biometric Authentication Enabled!");
-
-        if (deviceId && deviceName) {
-          try {
-            const devices = await fetchUserDevices();
-            const isDuplicate = devices.some(
-              (device) =>
-                String(device.deviceId).trim() === String(deviceId).trim()
-            );
-
-            if (isDuplicate) {
-              Alert.alert("Device Already Registered", "This device is already registered.");
-              return;
-            }
-
-            if (isDeviceFlow) {
-              await addUserDevice(deviceId, deviceName);
-            } else {
-              await registerDevice(email, deviceId, deviceName);
-            }
-
-            console.log("Device registered successfully.");
-          } catch (error) {
-            console.error("Device Registration Error:", error);
-            Alert.alert("Error", error.message || "Failed to register device.");
-          }
-        }
-
-        const token = await AsyncStorage.getItem("accessToken");
-        if (token) {
-          navigation.replace("Dashboard");
-        } else {
-          Alert.alert("Session Expired", "Please log in again.");
-          navigation.replace("Login");
-        }
-      } else {
+      if (!result.success) {
         Alert.alert("Biometric Authentication Failed", "Please try again.");
+        return;
       }
+
+      Alert.alert("Success", "Biometric Authentication Enabled!");
+
+      if (deviceId && deviceName) {
+        let devices = [];
+
+        if (isDeviceFlow) {
+          devices = await fetchUserDevices();
+        }
+
+        const isDuplicate = devices.some(
+          (device) =>
+            String(device.deviceId).trim() === String(deviceId).trim()
+        );
+
+        if (isDuplicate) {
+          Alert.alert("Device Already Registered", "This device is already registered.");
+          return;
+        }
+
+        try {
+          if (isDeviceFlow) {
+            await addUserDevice(deviceId, deviceName);
+          } else {
+            await registerDevice(email, deviceId, deviceName);
+          }
+          console.log("Device registered successfully.");
+        } catch (error) {
+          console.error("Device Registration Error:", error);
+          Alert.alert("Error", error.message || "Failed to register device.");
+          return;
+        }
+      }
+
+      Alert.alert("Account Validated", "Please log in to continue.", [
+        {
+          text: "OK",
+          onPress: () => navigation.replace("Login"),
+        },
+      ]);
     } catch (error) {
       console.error("Biometric Authentication Error:", error);
       Alert.alert("Error", "An error occurred during authentication.");

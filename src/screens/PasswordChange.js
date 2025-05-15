@@ -55,7 +55,7 @@ const ChangePasswordScreen = ({ navigation, route }) => {
       }
 
       Alert.alert("Success", "Password changed successfully!");
-      navigation.replace("Login");
+      navigation.replace("BiometricScreen", { email, from: "AccountSetup" });
     } catch (error) {
       Alert.alert("Error", error.message || "Something went wrong.");
     }

@@ -1,42 +1,65 @@
 import React, { createContext, useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useNavigationState } from "@react-navigation/native";
 
 export const AppContext = createContext();
 
 export const AppContextProvider = ({ children }) => {
   const navigation = useNavigation();
+  const routes = useNavigationState(state => state?.routes);
+  const currentRoute = routes?.[routes.length - 1]?.name;
+
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
+  const [userEmail, setUserEmail] = useState(null);
 
   useEffect(() => {
-    const fetchAuthState = async () => {
-      setLoading(true);
-      try {
-        const accessToken = await AsyncStorage.getItem("accessToken");
-
-        if (!accessToken || accessToken === "null") {
-          console.log("No valid access token. Skipping user check.");
-          setLoading(false);
-          return;
-        }
-
-        const user = await getUserData(); // Only call if token is present
-        if (!user) throw new Error("User not found");
-
-        setUserData(user);
-        setIsLoggedin(true);
-      } catch (err) {
-        await hardLogout(); // clean up any bad session
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    if (
+      currentRoute === "OtpVerification" ||
+      currentRoute === "PasswordChange" ||
+      currentRoute === "BiometricScreen"
+    ) {
+      console.log("⏭️ Skipping session check during validation flow");
+      return;
+    }
     fetchAuthState();
-  }, []);
+  }, [currentRoute]);
+
+  const fetchAuthState = async () => {
+    setLoading(true);
+    try {
+      const sessionValid = await checkSession();
+      if (!sessionValid) return;
+
+      const user = await getUserData();
+      if (!user) throw new Error("User not found");
+
+      setUserData(user);
+      setIsLoggedin(true);
+
+      const email = await AsyncStorage.getItem("userEmail");
+      if (email) setUserEmail(email);
+    } catch (err) {
+      await hardLogout();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkSession = async () => {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+
+    if (!accessToken || !refreshToken || accessToken === "null" || refreshToken === "null") {
+      console.log("No valid session tokens. Forcing logout.");
+      await hardLogout();
+      return false;
+    }
+
+    return true;
+  };
 
   const getUserData = async () => {
     try {
@@ -78,18 +101,28 @@ export const AppContextProvider = ({ children }) => {
       await AsyncStorage.setItem("refreshToken", data.refreshToken);
       await AsyncStorage.setItem("userEmail", email);
       setIsLoggedin(true);
+      setUserEmail(email);
 
       const user = await getUserData();
       if (user) {
         setUserData(user);
-        return true;
+        return {
+          success: true,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          user,
+        };
       } else {
         Alert.alert("Error", "Failed to fetch user details. Please try again.");
         return false;
       }
     } catch (error) {
       console.error("Login error:", error);
-      Alert.alert("Error", error.message || "Something went wrong.");
+      if (Platform.OS === "web") {
+        console.log("Login failed silently on web");
+      } else {
+        Alert.alert("Error", error.message || "Something went wrong.");
+      }
       return false;
     }
   };
@@ -106,9 +139,10 @@ export const AppContextProvider = ({ children }) => {
   };
 
   const hardLogout = async () => {
-    await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
+    await AsyncStorage.multiRemove(["accessToken", "refreshToken", "userEmail"]);
     setIsLoggedin(false);
     setUserData(null);
+    setUserEmail(null);
     navigation.reset({
       index: 0,
       routes: [{ name: "Login" }],
@@ -138,6 +172,9 @@ export const AppContextProvider = ({ children }) => {
       return data.accessToken;
     } catch (error) {
       console.error("Error refreshing token:", error);
+      if (Platform.OS !== "web") {
+        Alert.alert("Session Error", "Failed to refresh your session. Please log in again.");
+      }
       return null;
     }
   };
@@ -165,7 +202,7 @@ export const AppContextProvider = ({ children }) => {
       if (!accessToken) {
         console.log("Refresh token expired. Logging out...");
         await hardLogout();
-        throw new Error("Session expired. Please log in again.");
+        return new Response(null, { status: 401 });
       }
 
       fetchOptions.headers.Authorization = `Bearer ${accessToken}`;
@@ -181,8 +218,10 @@ export const AppContextProvider = ({ children }) => {
         isLoggedin,
         loading,
         userData,
+        userEmail,
         loginUser,
         logoutUser,
+        hardLogout,
         fetchWithAuth,
       }}
     >
