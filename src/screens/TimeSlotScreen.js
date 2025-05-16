@@ -25,7 +25,7 @@ export default function TimeSlotSelectionScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const { date } = route.params;
-
+  
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlots, setSelectedSlots] = useState({});
@@ -39,6 +39,7 @@ export default function TimeSlotSelectionScreen() {
       const data = await response.json();
 
       console.log("Rooms fetched:", data.rooms?.length || 0);
+      console.log("Room data:", data.rooms);
       setRooms(data.rooms || []);
     } catch (error) {
       console.error("Fetch error:", error);
@@ -130,6 +131,17 @@ export default function TimeSlotSelectionScreen() {
     </View>
   );
 
+  const formatDateLocal = (isoDate) => {
+    const [y, m, d] = isoDate.split("-");
+    const localDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    return localDate.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.headerRow}>
@@ -138,7 +150,7 @@ export default function TimeSlotSelectionScreen() {
         </TouchableOpacity>
         <View>
           <Text style={styles.title}>Select Time Slots</Text>
-          <Text style={styles.dateSubtitle}>for {date}</Text>
+          <Text style={styles.dateSubtitle}>for {formatDateLocal(date)}</Text>
         </View>
       </View>
 

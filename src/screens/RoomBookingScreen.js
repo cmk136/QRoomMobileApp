@@ -33,7 +33,7 @@ export default function RoomBookingScreen() {
 
   useEffect(() => {
     const today = new Date();
-    const todayISO = today.toISOString().split("T")[0];
+    const todayFormatted = formatLocalDate(today);
     const weekDates = [];
 
     for (let i = 0; i < 7; i++) {
@@ -42,17 +42,24 @@ export default function RoomBookingScreen() {
       const label = `${date.getDate()} ${date.toLocaleString("default", {
         month: "short",
       })} • ${weekDays[date.getDay()]}`;
-      const value = date.toISOString().split("T")[0];
+      const value = formatLocalDate(date);
       weekDates.push({ label, value });
     }
 
     setDateOptions(weekDates);
-    setSelectedDate(todayISO);
+    setSelectedDate(todayFormatted);
   }, []);
 
   useEffect(() => {
     fetchRoomsByDate();
   }, []);
+
+  const formatLocalDate = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
 
   const fetchRoomsByDate = async () => {
     try {
@@ -79,12 +86,15 @@ export default function RoomBookingScreen() {
   };
 
   const showInfoAlert = () => {
-    Alert.alert("How to Use", "Select a date from the dropdown menu and tap 'Search' to view and book available rooms on that day.");
+    Alert.alert(
+      "How to Use",
+      "Select a date from the dropdown menu and tap 'Search' to view and book available rooms on that day."
+    );
   };
 
   const handleSearch = () => {
-    const todayISO = new Date().toISOString().split("T")[0];
-    if (selectedDate < todayISO) {
+    const todayFormatted = formatLocalDate(new Date());
+    if (selectedDate < todayFormatted) {
       Alert.alert("Invalid Date", "You can only search for bookings from today onward.");
       return;
     }
@@ -139,27 +149,41 @@ export default function RoomBookingScreen() {
         />
       </View>
 
-      <Modal isVisible={isModalVisible} onBackdropPress={closeModal} style={styles.modal}>
-        <TouchableOpacity style={styles.modalCloseOutside} onPress={closeModal} />
-        <View style={styles.modalContent}>
-          {selectedRoom && (
-            <>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {selectedRoom.imageURLs?.map((url, index) => (
-                  <Image
-                    key={index}
-                    source={{ uri: url }}
-                    style={styles.fullImage}
-                    resizeMode="cover"
-                  />
-                ))}
-              </ScrollView>
-              <Text style={styles.roomName}>{selectedRoom.roomName}</Text>
-              <Text style={styles.roomDetail}>📍 {selectedRoom.location}</Text>
-              <Text style={styles.roomDetail}>👥 Capacity: {selectedRoom.capacity}</Text>
-              <Text style={styles.roomDesc}>{selectedRoom.description}</Text>
-            </>
-          )}
+      <Modal
+        isVisible={isModalVisible}
+        onBackdropPress={closeModal}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        style={{ margin: 0, justifyContent: 'flex-end' }}
+      >
+        <View style={styles.modalContainer}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.modalContent}
+          >
+            {selectedRoom && (
+              <>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 10 }}
+                >
+                  {selectedRoom.imageURLs?.map((url, index) => (
+                    <Image
+                      key={index}
+                      source={{ uri: url }}
+                      style={styles.fullImage}
+                      resizeMode="cover"
+                    />
+                  ))}
+                </ScrollView>
+                <Text style={styles.roomName}>{selectedRoom.roomName}</Text>
+                <Text style={styles.roomDetail}>📍 {selectedRoom.location}</Text>
+                <Text style={styles.roomDetail}>👥 Capacity: {selectedRoom.capacity}</Text>
+                <Text style={styles.roomDesc}>{selectedRoom.description}</Text>
+              </>
+            )}
+          </ScrollView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -251,18 +275,30 @@ const styles = StyleSheet.create({
   },
   modal: {
     margin: 0,
+    justifyContent: "flex-end",
   },
-  modalCloseOutside: {
-    flex: 1,
+  modalContainer: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '85%',
   },
   modalContent: {
-    width: "100%",
+    paddingBottom: 20,
+  },
+  modalContentWrapper: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
+    width: "100%",
     position: "absolute",
     bottom: 0,
+  },
+  imageRow: {
+    width: "100%",
   },
   fullImage: {
     width: width - 40,
@@ -272,9 +308,9 @@ const styles = StyleSheet.create({
   },
   roomName: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginTop: 16,
-    color: "#1c1c1d",
+    color: '#1c1c1d',
   },
   roomDetail: {
     fontSize: 14,

@@ -9,6 +9,9 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import Animated, {
@@ -63,8 +66,6 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      console.log("Attempting login with:", { email });
-
       const response = await loginUser(email, password, navigation);
 
       if (response?.requiresVerification) {
@@ -72,18 +73,21 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
+      if (response?.role === "admin" || response?.role === "root") {
+        Alert.alert("Access Denied", "This app is only accessible to members.");
+        setLoading(false);
+        return;
+      }
+
       if (response) {
-        console.log("✅ Login succeeded, redirecting to dashboard...");
         navigation.reset({
           index: 0,
           routes: [{ name: "Dashboard" }],
         });
       } else {
-        console.warn("⚠️ Login failed:", response?.message);
         Alert.alert("Login Failed", response?.message || "Invalid credentials");
       }
     } catch (error) {
-      console.error("❌ Login Error:", error);
       Alert.alert("Login Error", error.message || "Something went wrong.");
     }
 
@@ -91,51 +95,66 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+    >
       <Svg height={height} width={width} style={StyleSheet.absoluteFill}>
         {blobs.map((blob, index) => (
-          <AnimatedCircle key={index} animatedProps={animatedPropsList[index]} fill={blob.fill} opacity={blob.opacity} />
+          <AnimatedCircle
+            key={index}
+            animatedProps={animatedPropsList[index]}
+            fill={blob.fill}
+            opacity={blob.opacity}
+          />
         ))}
       </Svg>
 
-      <Image source={require("../assets/logo.png")} style={styles.logo} resizeMode="contain" />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Image source={require("../assets/logo.png")} style={styles.logo} resizeMode="contain" />
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Login</Text>
+        <View style={styles.card}>
+          <Text style={styles.title}>Login</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#28282a"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-
-        <View style={styles.passwordWrapper}>
           <TextInput
-            style={[styles.input, { flex: 1 }]}
-            placeholder="Password"
+            style={styles.input}
+            placeholder="Email"
             placeholderTextColor="#28282a"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-            <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#1c1c1d" />
+
+          <View style={styles.passwordWrapper}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="Password"
+              placeholderTextColor="#28282a"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+              <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#1c1c1d" />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, (loading || !email || !password) && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading || !email || !password}
+          >
+            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Login</Text>}
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={[styles.button, (loading || !email || !password) && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading || !email || !password}
-        >
-          {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Login</Text>}
-        </TouchableOpacity>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -145,9 +164,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fafafa",
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    paddingBottom: 30,
   },
   logo: {
     width: 140,

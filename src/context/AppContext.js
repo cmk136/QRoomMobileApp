@@ -111,6 +111,7 @@ export const AppContextProvider = ({ children }) => {
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
           user,
+          role: user.role, 
         };
       } else {
         Alert.alert("Error", "Failed to fetch user details. Please try again.");

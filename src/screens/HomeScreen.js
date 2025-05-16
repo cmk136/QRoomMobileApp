@@ -51,20 +51,26 @@ const HomeScreen = ({ navigation }) => {
     for (let i = 0; i < 7; i++) {
       const date = new Date();
       date.setDate(today.getDate() + i);
-      const isoDate = date.toISOString().split("T")[0];
+
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const localDateStr = `${year}-${month}-${day}`;
+
       next7.push({
         label: date.toLocaleDateString("en-GB", {
           weekday: "short",
           day: "2-digit",
           month: "short",
         }),
-        value: isoDate,
+        value: localDateStr,
       });
     }
 
     setDateList(next7);
     setSelectedDate(next7[0].value);
   };
+
 
   const fetchBookings = async () => {
     try {
@@ -89,6 +95,49 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const deleteBooking = async (bookingId) => {
+    try {
+      const accessToken = await AsyncStorage.getItem("accessToken");
+      if (!accessToken) throw new Error("No access token found");
+
+      const response = await axios.delete(
+        "https://mjzry50v6f.execute-api.ap-southeast-1.amazonaws.com/prod/deleteBooking", 
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          data: { bookingId }, 
+        }
+      );
+
+      if (response.status === 200) {
+        Alert.alert("Deleted", "Booking deleted successfully.");
+        fetchBookings(); 
+      } else {
+        throw new Error("Booking deletion failed.");
+      }
+    } catch (error) {
+      console.error("Delete Booking Error:", error);
+      Alert.alert("Error", error.response?.data?.message || "Failed to delete booking.");
+    }
+  };
+
+  const confirmDeleteBooking = (bookingId) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this booking?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          onPress: () => deleteBooking(bookingId),
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
   const requestCameraPermission = async () => {
     const { status } = await Camera.requestCameraPermissionsAsync();
   };
@@ -104,7 +153,13 @@ const HomeScreen = ({ navigation }) => {
 
   const renderBookingCard = (booking, idx) => (
     <View key={idx} style={styles.bookingCard}>
-      <Text style={styles.bookingTitle}>{booking.roomName}</Text>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <Text style={styles.bookingTitle}>{booking.roomName}</Text>
+        <TouchableOpacity onPress={() => confirmDeleteBooking(booking.id)}>
+          <Ionicons name="trash-outline" size={20} color="#d11a2a" />
+        </TouchableOpacity>
+      </View>
+
       {booking.location && (
         <Text style={styles.bookingInfo}>📍 {booking.location}</Text>
       )}
