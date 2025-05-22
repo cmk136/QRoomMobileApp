@@ -64,7 +64,7 @@ const DevicesScreen = ({ navigation }) => {
       const accessToken = await AsyncStorage.getItem("accessToken");
       if (!accessToken) throw new Error("User not authenticated.");
   
-      const email = userEmail;
+      const email = await AsyncStorage.getItem("userEmail");
       if (!email) {
         Alert.alert("Error", "Email not found. Cannot continue.");
         return;
