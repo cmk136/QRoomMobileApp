@@ -32,14 +32,40 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    if (selectedDate && allBookings.length > 0) {
+    // if (selectedDate && allBookings.length > 0) {
+    //   const filtered = allBookings
+    //     .filter((b) => b.bookingDate.startsWith(selectedDate))
+    //     .sort(
+    //       (a, b) =>
+    //         new Date(`1970-01-01T${a.timeslot}`) -
+    //         new Date(`1970-01-01T${b.timeslot}`)
+    //     );
+    //   setFilteredBookings(filtered);
+    // }
+      if (selectedDate && allBookings.length > 0) {
+      const now = new Date();
+
       const filtered = allBookings
-        .filter((b) => b.bookingDate.startsWith(selectedDate))
+        .filter((b) => {
+          // Match selected date
+          if (!b.bookingDate.startsWith(selectedDate)) return false;
+
+          const bookingDateTime = new Date(`${b.bookingDate}T${b.timeslot}`);
+
+          // If selectedDate is today, only show future bookings
+          if (selectedDate === now.toISOString().split("T")[0]) {
+            return bookingDateTime >= now;
+          }
+
+          // If selectedDate is in future, include all
+          return true;
+        })
         .sort(
           (a, b) =>
-            new Date(`1970-01-01T${a.timeslot}`) -
-            new Date(`1970-01-01T${b.timeslot}`)
+            new Date(`${a.bookingDate}T${a.timeslot}`) -
+            new Date(`${b.bookingDate}T${b.timeslot}`)
         );
+
       setFilteredBookings(filtered);
     }
   }, [selectedDate, allBookings]);

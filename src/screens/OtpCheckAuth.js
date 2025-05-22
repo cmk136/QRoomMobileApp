@@ -21,11 +21,15 @@ export default function OTPCheckIn() {
   const [attempts, setAttempts] = useState(0);
   const MAX_ATTEMPTS = 10;
   const appState = useRef(AppState.currentState);
-  const isChecking = useRef(false); // Prevent overlapping calls
+  const isChecking = useRef(false);
 
   const checkUnlockStatus = async () => {
-    if (isChecking.current) return; // Already checking
+    if (isChecking.current) {
+      console.log("🔄 Already checking, skipping duplicate call.");
+      return;
+    }
     isChecking.current = true;
+    console.log("🚀 Checking unlock status...");
 
     try {
       const response = await fetchWithAuth(
@@ -40,24 +44,18 @@ export default function OTPCheckIn() {
       );
 
       const data = await response.json();
-      console.log("Unlock check response:", data);
+      console.log("✅ Unlock check response:", data);
 
       if (data.success && data.isUnlocked) {
-        console.log("Room unlocked, navigating to CheckInAuth...");
+        console.log("🔓 Room unlocked, navigating to CheckInAuth...");
         navigation.replace("CheckInAuth");
-      } else if (attempts < MAX_ATTEMPTS) {
-        setTimeout(() => {
-          setAttempts((prev) => prev + 1);
-          checkUnlockStatus();
-        }, 5000);
       } else {
-        Alert.alert("Timeout", "Unable to verify unlock. Please try again.");
-        setLoading(false);
+        console.log("❌ Not unlocked yet, attempt:", attempts + 1);
+        setAttempts((prev) => prev + 1);
       }
     } catch (error) {
-      console.error("Error checking unlock:", error);
-      Alert.alert("Network Error", "Unable to connect to the server.");
-      setLoading(false);
+      console.error("❌ Error checking unlock:", error);
+      setAttempts((prev) => prev + 1);
     } finally {
       isChecking.current = false;
     }
@@ -77,8 +75,11 @@ export default function OTPCheckIn() {
         appState.current.match(/inactive|background/) &&
         nextAppState === "active"
       ) {
-        console.log("App resumed — checking unlock again.");
-        checkUnlockStatus();
+        console.log("📲 App resumed — retrying unlock check after delay.");
+        setTimeout(() => {
+          isChecking.current = false;
+          checkUnlockStatus();
+        }, 2000);
       }
       appState.current = nextAppState;
     });
@@ -87,6 +88,20 @@ export default function OTPCheckIn() {
       subscription.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (attempts > 0 && attempts < MAX_ATTEMPTS && !isChecking.current) {
+      console.log("⏱ Retrying unlock check in 5s, attempt:", attempts);
+      const delay = setTimeout(() => {
+        checkUnlockStatus();
+      }, 5000);
+      return () => clearTimeout(delay);
+    } else if (attempts >= MAX_ATTEMPTS) {
+      console.log("🛑 Max attempts reached. Showing timeout alert.");
+      Alert.alert("Timeout", "Unable to verify unlock. Please try again.");
+      setLoading(false);
+    }
+  }, [attempts]);
 
   return (
     <View style={styles.container}>
