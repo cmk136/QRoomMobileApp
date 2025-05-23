@@ -12,12 +12,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { AppContext } from "../context/AppContext";
 
 const HomeScreen = ({ navigation }) => {
-  const { logoutUser } = useContext(AppContext);
+  const { logoutUser, fetchWithAuth } = useContext(AppContext);
   const [allBookings, setAllBookings] = useState([]);
   const [filteredBookings, setFilteredBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,40 +30,14 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    // if (selectedDate && allBookings.length > 0) {
-    //   const filtered = allBookings
-    //     .filter((b) => b.bookingDate.startsWith(selectedDate))
-    //     .sort(
-    //       (a, b) =>
-    //         new Date(`1970-01-01T${a.timeslot}`) -
-    //         new Date(`1970-01-01T${b.timeslot}`)
-    //     );
-    //   setFilteredBookings(filtered);
-    // }
-      if (selectedDate && allBookings.length > 0) {
-      const now = new Date();
-
+    if (selectedDate && allBookings.length > 0) {
       const filtered = allBookings
-        .filter((b) => {
-          // Match selected date
-          if (!b.bookingDate.startsWith(selectedDate)) return false;
-
-          const bookingDateTime = new Date(`${b.bookingDate}T${b.timeslot}`);
-
-          // If selectedDate is today, only show future bookings
-          if (selectedDate === now.toISOString().split("T")[0]) {
-            return bookingDateTime >= now;
-          }
-
-          // If selectedDate is in future, include all
-          return true;
-        })
+        .filter((b) => b.bookingDate.startsWith(selectedDate))
         .sort(
           (a, b) =>
-            new Date(`${a.bookingDate}T${a.timeslot}`) -
-            new Date(`${b.bookingDate}T${b.timeslot}`)
+            new Date(`1970-01-01T${a.timeslot}`) -
+            new Date(`1970-01-01T${b.timeslot}`)
         );
-
       setFilteredBookings(filtered);
     }
   }, [selectedDate, allBookings]);
@@ -97,21 +69,21 @@ const HomeScreen = ({ navigation }) => {
     setSelectedDate(next7[0].value);
   };
 
-
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const accessToken = await AsyncStorage.getItem("accessToken");
-      if (!accessToken) throw new Error("No access token found. Please log in again.");
-
-      const response = await axios.get(
-        "https://velilo080f.execute-api.ap-southeast-1.amazonaws.com/prod/fetchUsersBooking",
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
+      const res = await fetchWithAuth(
+        "https://velilo080f.execute-api.ap-southeast-1.amazonaws.com/prod/fetchUsersBooking"
       );
 
-      setAllBookings(response.data.bookings || []);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Booking fetch failed:", errorText);
+        throw new Error("Failed to fetch bookings");
+      }
+
+      const data = await res.json();
+      setAllBookings(data.bookings || []);
     } catch (error) {
       console.error("Fetch Bookings Error:", error);
       Alert.alert("Error", error.message || "Failed to fetch bookings.");
@@ -123,29 +95,25 @@ const HomeScreen = ({ navigation }) => {
 
   const deleteBooking = async (bookingId) => {
     try {
-      const accessToken = await AsyncStorage.getItem("accessToken");
-      if (!accessToken) throw new Error("No access token found");
-
-      const response = await axios.delete(
-        "https://mjzry50v6f.execute-api.ap-southeast-1.amazonaws.com/prod/deleteBooking", 
+      const res = await fetchWithAuth(
+        "https://mjzry50v6f.execute-api.ap-southeast-1.amazonaws.com/prod/deleteBooking",
         {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          data: { bookingId }, 
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingId }),
         }
       );
 
-      if (response.status === 200) {
-        Alert.alert("Deleted", "Booking deleted successfully.");
-        fetchBookings(); 
-      } else {
-        throw new Error("Booking deletion failed.");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Booking deletion failed.");
       }
+
+      Alert.alert("Deleted", "Booking deleted successfully.");
+      fetchBookings();
     } catch (error) {
       console.error("Delete Booking Error:", error);
-      Alert.alert("Error", error.response?.data?.message || "Failed to delete booking.");
+      Alert.alert("Error", error.message || "Failed to delete booking.");
     }
   };
 
@@ -166,6 +134,7 @@ const HomeScreen = ({ navigation }) => {
 
   const requestCameraPermission = async () => {
     const { status } = await Camera.requestCameraPermissionsAsync();
+    console.log("Camera permission status:", status);
   };
 
   const handleLogout = async () => {
@@ -185,7 +154,6 @@ const HomeScreen = ({ navigation }) => {
           <Ionicons name="trash-outline" size={20} color="#d11a2a" />
         </TouchableOpacity>
       </View>
-
       {booking.location && (
         <Text style={styles.bookingInfo}>📍 {booking.location}</Text>
       )}
@@ -194,7 +162,9 @@ const HomeScreen = ({ navigation }) => {
       </Text>
       <Text style={styles.bookingInfo}>Timeslot: {booking.timeslot}</Text>
       {booking.secondaryEmail && (
-        <Text style={styles.bookingInfo}>Secondary Contact: {booking.secondaryEmail}</Text>
+        <Text style={styles.bookingInfo}>
+          Secondary Contact: {booking.secondaryEmail}
+        </Text>
       )}
     </View>
   );

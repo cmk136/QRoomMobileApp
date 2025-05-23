@@ -2,6 +2,7 @@ import React, { createContext, useEffect, useState } from "react";
 import { Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useNavigationState } from "@react-navigation/native";
+import Toast from 'react-native-toast-message';
 
 export const AppContext = createContext();
 
@@ -21,7 +22,7 @@ export const AppContextProvider = ({ children }) => {
       currentRoute === "PasswordChange" ||
       currentRoute === "BiometricScreen"
     ) {
-      console.log("⏭️ Skipping session check during validation flow");
+      console.log("Skipping session check during validation flow");
       return;
     }
     fetchAuthState();
@@ -102,6 +103,10 @@ export const AppContextProvider = ({ children }) => {
       await AsyncStorage.setItem("userEmail", email);
       setIsLoggedin(true);
       setUserEmail(email);
+      Toast.show({
+        type: 'success',
+        text1: 'Login Successful',
+      });
 
       const user = await getUserData();
       if (user) {
@@ -137,6 +142,10 @@ export const AppContextProvider = ({ children }) => {
       console.log("Failed to notify backend during logout:", e.message);
     }
     await hardLogout();
+    Toast.show({
+        type: 'success',
+        text1: 'Logout Successful',
+      });
   };
 
   const hardLogout = async () => {

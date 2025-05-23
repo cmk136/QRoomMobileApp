@@ -3,6 +3,7 @@ import { AppState, Alert } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { AppContextProvider } from "./src/context/AppContext";
 import AppNavigator from "./src/navigation/AppNavigator";
+import Toast from 'react-native-toast-message';
 
 export default function App() {
   const appState = useRef(AppState.currentState);
@@ -13,9 +14,7 @@ export default function App() {
         appState.current.match(/inactive|background/) &&
         nextAppState === "active"
       ) {
-        console.log("🔄 App has come to the foreground");
-        // TODO: Trigger logic here when app resumes
-        // e.g., refresh unlock status, refresh token, recheck user session
+        console.log("App has come to the foreground");
       }
 
       appState.current = nextAppState;
@@ -30,6 +29,7 @@ export default function App() {
     <NavigationContainer>
       <AppContextProvider>
         <AppNavigator />
+        <Toast />
       </AppContextProvider>
     </NavigationContainer>
   );
